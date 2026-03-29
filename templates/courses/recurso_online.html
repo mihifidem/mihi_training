@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}{{ recurso.titulo }} — Recurso{% endblock %}
+{% block page_title %}{{ recurso.titulo }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-12 col-xl-9">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <div class="fw-semibold">{{ recurso.titulo }}</div>
+          <div class="small text-muted">{{ recurso.tema.curso.nombre }} / {{ recurso.tema.titulo }}</div>
+        </div>
+        <a href="{% url 'courses:tema_detail' pk=recurso.tema.pk %}" class="btn btn-outline-secondary btn-sm">Volver al tema</a>
+      </div>
+      <div class="card-body">
+        {% if recurso.tipo_codigo == 'pdf' %}
+          <iframe src="{{ recurso.archivo.url }}" width="100%" height="780" style="border:0;" title="{{ recurso.titulo }}"></iframe>
+        {% elif recurso.tipo_codigo == 'audio' %}
+          <audio controls preload="metadata" class="w-100">
+            <source src="{{ recurso.archivo.url }}" type="audio/mpeg">
+            Tu navegador no soporta la reproducción de audio.
+          </audio>
+        {% elif recurso.tipo_codigo == 'video' %}
+          <video controls preload="metadata" class="w-100 rounded" style="max-height:720px; background:#000;">
+            <source src="{{ recurso.archivo.url }}" type="video/mp4">
+            Tu navegador no soporta la reproducción de video.
+          </video>
+        {% elif recurso.tipo_codigo == 'imagen' %}
+          <img src="{{ recurso.archivo.url }}" alt="{{ recurso.titulo }}" class="img-fluid rounded shadow-sm">
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">Recompensa</h6>
+        {% if puntos_otorgados_ahora %}
+          <div class="alert alert-success small mb-3">
+            Has ganado {{ puntos_recurso }} puntos por abrir este recurso online.
+          </div>
+        {% else %}
+          <div class="alert alert-secondary small mb-3">
+            Este recurso ya te otorgó sus {{ puntos_recurso }} puntos.
+          </div>
+        {% endif %}
+        <div class="small text-muted">
+          Los puntos por recurso se asignan una sola vez por usuario.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard Admin — MihiTraining{% endblock %}
+{% block page_title %}Dashboard Administrador{% endblock %}
+
+{% block content %}
+<!-- KPI row -->
+<div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
+  <div class="col">
+    <div class="card border-0 bg-primary text-white text-center py-4 shadow-sm">
+      <div class="display-6 fw-bold">{{ total_usuarios }}</div>
+      <small>Alumnos registrados</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 bg-success text-white text-center py-4 shadow-sm">
+      <div class="display-6 fw-bold">{{ total_cursos }}</div>
+      <small>Cursos activos</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 bg-warning text-dark text-center py-4 shadow-sm">
+      <div class="display-6 fw-bold">{{ total_inscripciones }}</div>
+      <small>Inscripciones</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 bg-info text-white text-center py-4 shadow-sm">
+      <div class="display-6 fw-bold">{{ nuevos_usuarios_30d }}</div>
+      <small>Nuevos (30 días)</small>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Top students -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-trophy me-2 text-warning"></i>Top 10 Alumnos
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead class="table-light"><tr><th>#</th><th>Alumno</th><th class="text-end">Puntos</th></tr></thead>
+          <tbody>
+            {% for u in top_alumnos %}
+            <tr>
+              <td class="text-muted fw-bold">{{ forloop.counter }}</td>
+              <td>{{ u.get_full_name|default:u.username }}</td>
+              <td class="text-end fw-bold text-warning">{{ u.puntos }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Difficult topics -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-exclamation-triangle me-2 text-danger"></i>Temas más difíciles
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead class="table-light"><tr><th>Tema</th><th class="text-end">Fallos</th><th class="text-end">Total</th></tr></thead>
+          <tbody>
+            {% for t in temas_dificiles %}
+            <tr>
+              <td class="small">{{ t.quiz__tema__titulo|truncatechars:35 }}</td>
+              <td class="text-end text-danger fw-semibold">{{ t.fallos }}</td>
+              <td class="text-end text-muted">{{ t.total }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popular courses -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-book me-2 text-success"></i>Cursos más populares
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for curso in cursos_populares %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>{{ curso.nombre }}</span>
+          <span class="badge bg-success">{{ curso.inscritos }} inscritos</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- Created achievements -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-award me-2 text-primary"></i>Logros creados
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Logro</th>
+              <th>Insignia</th>
+              <th class="text-end">Puntos base</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for logro in logros_creados %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ logro.nombre }}</div>
+                <div class="small text-muted">{{ logro.descripcion|truncatechars:55 }}</div>
+              </td>
+              <td class="small">{{ logro.insignia.nombre|default:'-' }}</td>
+              <td class="text-end fw-bold text-warning">{{ logro.puntos_recompensa }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted py-3">No hay logros creados.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assign achievement manually -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-person-plus me-2 text-success"></i>Asignar logro por correccion
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="asignar_logro">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">{{ asignar_logro_form.usuario.label }}</label>
+            {{ asignar_logro_form.usuario }}
+            {% if asignar_logro_form.usuario.errors %}
+              <div class="text-danger small mt-1">{{ asignar_logro_form.usuario.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">{{ asignar_logro_form.logro.label }}</label>
+            {{ asignar_logro_form.logro }}
+            {% if asignar_logro_form.logro.errors %}
+              <div class="text-danger small mt-1">{{ asignar_logro_form.logro.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">{{ asignar_logro_form.puntos_asignados.label }}</label>
+            {{ asignar_logro_form.puntos_asignados }}
+            {% if asignar_logro_form.puntos_asignados.errors %}
+              <div class="text-danger small mt-1">{{ asignar_logro_form.puntos_asignados.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-check2-circle me-1"></i>Asignar logro y puntos
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assign mission to students -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-lightning-charge me-2 text-danger"></i>Asignar mision a alumnos
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="asignar_mision">
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">{{ asignar_mision_form.mision.label }}</label>
+            {{ asignar_mision_form.mision }}
+            {% if asignar_mision_form.mision.errors %}
+              <div class="text-danger small mt-1">{{ asignar_mision_form.mision.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">{{ asignar_mision_form.usuarios.label }}</label>
+            {{ asignar_mision_form.usuarios }}
+            <div class="form-text">Puedes seleccionar varios alumnos con Ctrl/Cmd + clic.</div>
+            {% if asignar_mision_form.usuarios.errors %}
+              <div class="text-danger small mt-1">{{ asignar_mision_form.usuarios.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-check mb-3">
+            {{ asignar_mision_form.aplicar_puntos_ahora }}
+            <label class="form-check-label" for="{{ asignar_mision_form.aplicar_puntos_ahora.id_for_label }}">
+              {{ asignar_mision_form.aplicar_puntos_ahora.label }}
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-danger">
+            <i class="bi bi-plus-circle me-1"></i>Asignar mision
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send direct message -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-envelope me-2 text-primary"></i>Enviar mensaje a usuario
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="enviar_mensaje">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">{{ enviar_mensaje_form.usuario.label }}</label>
+            {{ enviar_mensaje_form.usuario }}
+            {% if enviar_mensaje_form.usuario.errors %}
+              <div class="text-danger small mt-1">{{ enviar_mensaje_form.usuario.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">{{ enviar_mensaje_form.titulo.label }}</label>
+            {{ enviar_mensaje_form.titulo }}
+            {% if enviar_mensaje_form.titulo.errors %}
+              <div class="text-danger small mt-1">{{ enviar_mensaje_form.titulo.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">{{ enviar_mensaje_form.mensaje.label }}</label>
+            {{ enviar_mensaje_form.mensaje }}
+            {% if enviar_mensaje_form.mensaje.errors %}
+              <div class="text-danger small mt-1">{{ enviar_mensaje_form.mensaje.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-send me-1"></i>Enviar mensaje
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent activity -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-clock-history me-2 text-info"></i>Actividad reciente
+      </div>
+      <div class="card-body p-0" style="max-height:280px;overflow-y:auto;">
+        <ul class="list-group list-group-flush">
+          {% for act in actividades_recientes %}
+          <li class="list-group-item small py-2">
+            <span class="fw-semibold">{{ act.usuario.username }}</span>
+            <span class="text-muted ms-1">{{ act.descripcion|truncatechars:50 }}</span>
+            <span class="float-end text-muted">{{ act.timestamp|timesince }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

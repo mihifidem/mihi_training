@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — MihiTraining{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+
+  <!-- Stats row -->
+  <div class="col-12">
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3">
+          <div class="display-6 text-warning fw-bold">{{ user.puntos_totales }}</div>
+          <div class="text-muted small"><i class="bi bi-star-fill text-warning me-1"></i>Puntos acumulados</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3">
+          <div class="display-6 text-info fw-bold">{{ user.puntos }}</div>
+          <div class="text-muted small"><i class="bi bi-wallet2 text-info me-1"></i>Puntos disponibles</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3">
+          <div class="display-6 fw-bold text-danger">{{ user.streak }}</div>
+          <div class="text-muted small"><i class="bi bi-fire text-danger me-1"></i>Racha (días)</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3">
+          <div class="display-6 fw-bold text-success">{{ inscripciones|length }}</div>
+          <div class="text-muted small"><i class="bi bi-book text-success me-1"></i>Cursos inscritos</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm text-center py-3">
+          <div class="display-6 fw-bold text-primary">{{ insignias_recientes|length }}</div>
+          <div class="text-muted small"><i class="bi bi-award text-primary me-1"></i>Insignias</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Level progress -->
+  <div class="col-12 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="card-title fw-semibold mb-3"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Nivel &amp; Progreso</h6>
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <span class="badge bg-primary fs-6 px-3 py-2 text-uppercase">{{ user.nivel }}</span>
+          {% if user.nivel == 'rookie' %}
+            <small class="text-muted">Siguiente nivel: <strong>Pro</strong> (300 pts)</small>
+          {% elif user.nivel == 'pro' %}
+            <small class="text-muted">Siguiente nivel: <strong>Master</strong> (1000 pts)</small>
+          {% else %}
+            <small class="text-success fw-semibold">¡Nivel máximo alcanzado!</small>
+          {% endif %}
+        </div>
+        <div class="progress" style="height:12px;">
+          <div class="progress-bar bg-warning fw-bold" role="progressbar"
+               style="width:{{ user.progreso_nivel }}%;"
+               aria-valuenow="{{ user.progreso_nivel }}" aria-valuemin="0" aria-valuemax="100">
+            {{ user.progreso_nivel }}%
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active missions -->
+  <div class="col-12 col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h6 class="card-title fw-semibold mb-3"><i class="bi bi-lightning-charge me-2 text-warning"></i>Misiones Activas</h6>
+        {% if misiones_activas %}
+          {% for mu in misiones_activas %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between small mb-1">
+              <span>{{ mu.mision.titulo }}</span>
+              <span class="text-muted">{{ mu.progreso }}/{{ mu.mision.requisito_cantidad }}</span>
+            </div>
+            <div class="progress" style="height:8px;">
+              {% widthratio mu.progreso mu.mision.requisito_cantidad 100 as pct %}
+              <div class="progress-bar bg-success" style="width:{{ pct }}%;"></div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted small">No tienes misiones activas. ¡Ve a la sección <a href="{% url 'gamification:misiones' %}">Misiones</a>!</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- My courses -->
+  <div class="col-12 col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom fw-semibold">
+        <i class="bi bi-book me-2 text-success"></i>Mis Cursos
+        <a href="{% url 'courses:list' %}" class="btn btn-sm btn-outline-success float-end">Ver todos</a>
+      </div>
+      <div class="card-body p-0">
+        {% if inscripciones %}
+          <ul class="list-group list-group-flush">
+            {% for insc in inscripciones %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <a href="{% url 'courses:detail' pk=insc.curso.pk %}" class="fw-semibold text-decoration-none">{{ insc.curso.nombre }}</a>
+                {% if insc.completado %}
+                  <span class="badge bg-success ms-2">Completado</span>
+                {% endif %}
+              </div>
+              <a href="{% url 'courses:detail' pk=insc.curso.pk %}" class="btn btn-sm btn-outline-primary">Continuar</a>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="p-4 text-center text-muted">
+            <i class="bi bi-book display-4 d-block mb-2 opacity-25"></i>
+            Aún no te has inscrito en ningún curso.
+            <a href="{% url 'courses:list' %}" class="d-block mt-2">Explorar cursos</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent badges -->
+  <div class="col-12 col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom fw-semibold">
+        <i class="bi bi-award me-2 text-primary"></i>Insignias Recientes
+      </div>
+      <div class="card-body">
+        {% if insignias_recientes %}
+          <div class="row row-cols-3 g-2">
+            {% for iu in insignias_recientes %}
+            <div class="col text-center">
+              {% if iu.insignia.imagen %}
+                <img src="{{ iu.insignia.imagen.url }}" class="rounded-circle border" width="50" height="50" style="object-fit:cover;" title="{{ iu.insignia.nombre }}" alt="{{ iu.insignia.nombre }}">
+              {% else %}
+                <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center" style="width:50px;height:50px;" title="{{ iu.insignia.nombre }}">
+                  <i class="bi bi-award text-white fs-5"></i>
+                </div>
+              {% endif %}
+              <div class="small text-muted mt-1" style="font-size:.7rem;">{{ iu.insignia.nombre|truncatechars:12 }}</div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="text-center mt-3">
+            <a href="{% url 'gamification:insignias' %}" class="btn btn-sm btn-outline-primary">Ver todas</a>
+          </div>
+        {% else %}
+          <p class="text-muted small text-center">Completa tareas para ganar insignias.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-white border-bottom fw-semibold">
+        <i class="bi bi-stars me-2 text-warning"></i>Logros Conseguidos
+      </div>
+      <div class="card-body">
+        {% if logros_recientes %}
+          <ul class="list-group list-group-flush">
+            {% for lu in logros_recientes %}
+            <li class="list-group-item px-0 d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-semibold small">{{ lu.logro.nombre }}</div>
+                <div class="text-muted" style="font-size:.75rem;">hace {{ lu.fecha_obtenido|timesince }}</div>
+              </div>
+              <span class="badge bg-warning text-dark">+{{ lu.puntos_asignados|default:lu.logro.puntos_recompensa }} pts</span>
+            </li>
+            {% endfor %}
+          </ul>
+          <div class="text-center mt-3">
+            <a href="{% url 'gamification:logros' %}" class="btn btn-sm btn-outline-warning">Ver todos</a>
+          </div>
+        {% else %}
+          <p class="text-muted small text-center mb-0">Todavia no has conseguido logros.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-white border-bottom fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-gift me-2 text-danger"></i>Recompensas solicitadas</span>
+        <a href="{% url 'rewards:list' %}" class="btn btn-sm btn-outline-danger">Ver recompensas</a>
+      </div>
+      <div class="card-body">
+        {% if canjes_recientes %}
+          <ul class="list-group list-group-flush">
+            {% for canje in canjes_recientes %}
+            <li class="list-group-item px-0 d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-semibold small">{{ canje.recompensa.nombre }}</div>
+                <div class="text-muted" style="font-size:.75rem;">solicitada hace {{ canje.fecha_canje|timesince }}</div>
+              </div>
+              {% if canje.estado == 'pendiente' %}
+                <span class="badge bg-warning text-dark">Pendiente</span>
+              {% elif canje.estado == 'procesado' %}
+                <span class="badge bg-success">Procesado</span>
+              {% else %}
+                <span class="badge bg-danger">Rechazado</span>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted small text-center mb-0">Todavía no has solicitado recompensas.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent activity -->
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom fw-semibold">
+        <i class="bi bi-activity me-2 text-info"></i>Actividad Reciente
+      </div>
+      <div class="card-body p-0">
+        {% if actividades %}
+          <ul class="list-group list-group-flush">
+            {% for act in actividades %}
+            <li class="list-group-item d-flex align-items-center gap-3 py-2">
+              <span class="badge bg-secondary-subtle text-secondary rounded-pill" style="font-size:.7rem;">{{ act.get_tipo_display }}</span>
+              <span class="small flex-grow-1">{{ act.descripcion }}</span>
+              {% if act.puntos_ganados %}
+                <span class="badge bg-warning text-dark">+{{ act.puntos_ganados }} pts</span>
+              {% endif %}
+              <span class="text-muted small">{{ act.timestamp|timesince }} ago</span>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="p-4 text-center text-muted small">Sin actividad reciente.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

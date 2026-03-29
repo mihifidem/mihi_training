@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}{{ perfil.get_full_name|default:perfil.username }} — Perfil{% endblock %}
+{% block page_title %}Perfil de {{ perfil.username }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Profile card -->
+  <div class="col-12 col-md-4">
+    <div class="card border-0 shadow-sm text-center p-4">
+      {% if perfil.avatar %}
+        <img src="{{ perfil.avatar.url }}" class="rounded-circle mx-auto mb-3 border" width="100" height="100" style="object-fit:cover;" alt="Avatar">
+      {% else %}
+        <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width:100px;height:100px;">
+          <span class="display-5 fw-bold text-white">{{ perfil.username|first|upper }}</span>
+        </div>
+      {% endif %}
+      <h4 class="fw-bold mb-0">{{ perfil.get_full_name|default:perfil.username }}</h4>
+      <p class="text-muted small">@{{ perfil.username }}</p>
+      <div class="d-flex justify-content-center gap-2 flex-wrap mb-3">
+        <span class="badge bg-secondary-subtle text-secondary-emphasis border px-3 py-2">
+          Rol: {{ perfil.get_role_display }}
+        </span>
+        <span class="badge bg-primary text-uppercase fs-6 px-3 py-2">{{ perfil.nivel }}</span>
+      </div>
+      {% if perfil.bio %}
+        <p class="text-muted small">{{ perfil.bio }}</p>
+      {% endif %}
+      <hr>
+      <div class="row text-center">
+        <div class="col">
+          <div class="fw-bold text-warning">{{ perfil.puntos }}</div>
+          <div class="text-muted" style="font-size:.75rem;">Puntos</div>
+        </div>
+        <div class="col">
+          <div class="fw-bold text-danger">{{ perfil.streak }}</div>
+          <div class="text-muted" style="font-size:.75rem;">Racha</div>
+        </div>
+        <div class="col">
+          <div class="fw-bold text-success">{{ certificados|length }}</div>
+          <div class="text-muted" style="font-size:.75rem;">Certs.</div>
+        </div>
+      </div>
+      {% if perfil == request.user %}
+        <a href="{% url 'users:editar_perfil' %}" class="btn btn-outline-primary btn-sm mt-3">
+          <i class="bi bi-pencil me-1"></i>Editar perfil
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Badges & certs -->
+  <div class="col-12 col-md-8">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-award me-2 text-primary"></i>Insignias ({{ total_insignias_activas }} / {{ total_insignias }})
+      </div>
+      <div class="card-body">
+        {% if insignias_con_estado %}
+          <div class="d-flex flex-wrap gap-3">
+            {% for insignia, activa in insignias_con_estado %}
+              <div class="text-center {% if not activa %}opacity-50{% endif %}" style="width:70px;" title="{{ insignia.nombre }}">
+                {% if insignia.imagen %}
+                  <img src="{{ insignia.imagen.url }}" class="rounded-circle border {% if not activa %}grayscale{% endif %}" width="52" height="52" style="object-fit:cover;" alt="{{ insignia.nombre }}">
+                {% else %}
+                  <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto {% if activa %}bg-primary{% else %}bg-secondary{% endif %}" style="width:52px;height:52px;">
+                    <i class="bi bi-award text-white"></i>
+                  </div>
+                {% endif %}
+                <div class="small text-muted mt-1" style="font-size:.65rem;">{{ insignia.nombre|truncatechars:10 }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted small mb-0">Aún no tiene insignias.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-patch-check me-2 text-success"></i>Certificados ({{ certificados|length }})
+      </div>
+      <div class="card-body p-0">
+        {% if certificados %}
+          <ul class="list-group list-group-flush">
+            {% for cert in certificados %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-patch-check-fill text-success me-2"></i>
+                {{ cert.curso.nombre }}
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">{{ cert.fecha_emision|date:"d M Y" }}</span>
+                {% if perfil == request.user %}
+                  <a href="{% url 'certifications:descargar' pk=cert.pk %}" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-download"></i>
+                  </a>
+                {% endif %}
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="p-4 text-center text-muted small">Sin certificados aún.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>.grayscale{filter:grayscale(100%);}</style>
+{% endblock %}

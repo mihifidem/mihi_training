@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}{{ curso.nombre }} — MihiTraining{% endblock %}
+{% block page_title %}{{ curso.nombre }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Course info -->
+  <div class="col-12 col-lg-8">
+    {% if curso.imagen %}
+      <img src="{{ curso.imagen.url }}" class="img-fluid rounded mb-4" style="max-height:280px;width:100%;object-fit:cover;" alt="{{ curso.nombre }}">
+    {% endif %}
+    <p class="text-muted">{{ curso.descripcion }}</p>
+
+    <!-- Progress bar if enrolled -->
+    {% if inscripcion %}
+    <div class="card border-0 bg-primary bg-opacity-10 p-3 mb-4">
+      <div class="d-flex justify-content-between small mb-1">
+        <span><strong>Tu progreso</strong></span>
+        <span>{{ temas_completados }} / {{ total_temas }} temas</span>
+      </div>
+      <div class="progress" style="height:10px;">
+        <div class="progress-bar bg-success" style="width:{{ porcentaje_progreso }}%;"></div>
+      </div>
+      {% if inscripcion.completado %}
+        <div class="mt-2 text-success small fw-semibold"><i class="bi bi-patch-check-fill me-1"></i>Curso completado — <a href="{% url 'certifications:list' %}">Ver certificado</a></div>
+      {% endif %}
+    </div>
+    {% else %}
+    <form method="post" action="{% url 'courses:inscribirse' pk=curso.pk %}" class="mb-4">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary btn-lg"><i class="bi bi-plus-circle me-2"></i>Inscribirme en este curso</button>
+    </form>
+    {% endif %}
+
+    <!-- Topics list -->
+    <h5 class="fw-bold mb-3">Temario ({{ total_temas }} temas)</h5>
+    <div class="list-group shadow-sm">
+      {% for tema, progreso in temas_con_progreso %}
+      <a href="{% if inscripcion %}{% url 'courses:tema_detail' pk=tema.pk %}{% else %}#{% endif %}"
+         class="list-group-item list-group-item-action d-flex justify-content-between align-items-center
+                {% if not inscripcion %}opacity-50{% endif %}
+                {% if progreso and progreso.completado %}list-group-item-success{% endif %}">
+        <span>
+          {% if progreso and progreso.completado %}
+            <i class="bi bi-check-circle-fill text-success me-2"></i>
+          {% else %}
+            <i class="bi bi-circle text-muted me-2"></i>
+          {% endif %}
+          {{ forloop.counter }}. {{ tema.titulo }}
+        </span>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-warning text-dark"><i class="bi bi-star me-1"></i>{{ tema.puntos_otorgados }} pts</span>
+          {% if tema.quiz %}
+            <span class="badge bg-info text-dark"><i class="bi bi-patch-question me-1"></i>Quiz</span>
+          {% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Sidebar info -->
+  <div class="col-12 col-lg-4">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">Información del curso</h6>
+        <ul class="list-unstyled small text-muted">
+          {% if curso.tipo_curso %}
+          <li class="mb-2"><i class="bi bi-tag me-2 text-secondary"></i>Tipo: {{ curso.tipo_curso.nombre }}</li>
+          {% endif %}
+          <li class="mb-2"><i class="bi bi-clock me-2 text-warning"></i>Duración: {{ curso.horas_duracion }} horas</li>
+          <li class="mb-2"><i class="bi bi-calendar me-2 text-primary"></i>Inicio: {{ curso.fecha_inicio|date:"d M Y" }}</li>
+          {% if curso.fecha_fin %}
+          <li class="mb-2"><i class="bi bi-calendar-check me-2 text-success"></i>Fin: {{ curso.fecha_fin|date:"d M Y" }}</li>
+          {% endif %}
+          <li class="mb-2"><i class="bi bi-list-task me-2 text-info"></i>{{ total_temas }} temas</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

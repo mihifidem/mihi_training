@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}Mi Progreso — Analytics{% endblock %}
+{% block page_title %}Mi Progreso{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Progress per course -->
+  <div class="col-12 col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-bar-chart me-2 text-primary"></i>Progreso por Curso
+      </div>
+      <div class="card-body">
+        {% if progreso_cursos %}
+          {% for item in progreso_cursos %}
+          <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <a href="{% url 'courses:detail' pk=item.curso.pk %}" class="fw-semibold text-decoration-none">{{ item.curso.nombre }}</a>
+              <span class="badge {% if item.completado %}bg-success{% else %}bg-secondary{% endif %}">
+                {{ item.completados }}/{{ item.total }} temas
+              </span>
+            </div>
+            <div class="progress" style="height:10px;">
+              <div class="progress-bar {% if item.completado %}bg-success{% else %}bg-primary{% endif %}"
+                   role="progressbar" style="width:{{ item.porcentaje }}%;">
+              </div>
+            </div>
+            <small class="text-muted">{{ item.porcentaje }}% completado
+              {% if item.completado %}<span class="text-success ms-2">✓ Completado</span>{% endif %}
+            </small>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted">No estás inscrito en ningún curso todavía.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Quiz results -->
+  <div class="col-12 col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-patch-question me-2 text-info"></i>Últimos Quizzes
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for res in resultados_quiz %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="small fw-semibold">{{ res.quiz.titulo|truncatechars:28 }}</div>
+            <div class="text-muted" style="font-size:.72rem;">{{ res.fecha|date:"d M H:i" }}</div>
+          </div>
+          <span class="badge {% if res.aprobado %}bg-success{% else %}bg-danger{% endif %}">
+            {{ res.porcentaje }}%
+          </span>
+        </li>
+        {% empty %}
+        <li class="list-group-item text-muted small">Sin resultados de quiz aún.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- Activity log -->
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-activity me-2 text-success"></i>Historial de Actividad
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for act in actividades %}
+          <li class="list-group-item d-flex align-items-center gap-3 py-2">
+            <span class="badge bg-secondary-subtle text-secondary rounded-pill small">{{ act.get_tipo_display }}</span>
+            <span class="small flex-grow-1">{{ act.descripcion }}</span>
+            {% if act.puntos_ganados %}<span class="badge bg-warning text-dark">+{{ act.puntos_ganados }}</span>{% endif %}
+            <span class="text-muted small">{{ act.timestamp|timesince }}</span>
+          </li>
+          {% empty %}
+          <li class="list-group-item text-muted small p-4 text-center">Sin actividad registrada.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

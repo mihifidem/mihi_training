@@ -1,0 +1,15 @@
+"""URL configuration for the users app."""
+from django.urls import path
+from . import views
+
+app_name = 'users'
+
+urlpatterns = [
+    path('', views.DashboardView.as_view(), name='dashboard'),
+    path('registro/', views.RegistroView.as_view(), name='registro'),
+    path('perfil/editar/', views.EditarPerfilView.as_view(), name='editar_perfil'),
+    path('perfil/<str:username>/', views.PerfilView.as_view(), name='perfil'),
+    path('notificaciones/', views.NotificacionesView.as_view(), name='notificaciones'),
+    path('notificaciones/leidas/', views.MarcarNotificacionLeidaView.as_view(), name='marcar_todas_leidas'),
+    path('notificaciones/<int:pk>/leida/', views.MarcarNotificacionLeidaView.as_view(), name='marcar_leida'),
+]
