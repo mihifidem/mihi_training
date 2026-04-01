@@ -251,6 +251,47 @@
     </div>
   </div>
 
+  <!-- Recalculate user points -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-arrow-repeat me-2 text-dark"></i>Recalcular puntos
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="recalcular_puntos">
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">{{ recalcular_puntos_form.usuario.label }}</label>
+            {{ recalcular_puntos_form.usuario }}
+            <div class="form-text">Selecciona un alumno para recalcular solo su puntuacion.</div>
+            {% if recalcular_puntos_form.usuario.errors %}
+              <div class="text-danger small mt-1">{{ recalcular_puntos_form.usuario.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-check mb-3">
+            {{ recalcular_puntos_form.recalcular_todos }}
+            <label class="form-check-label" for="{{ recalcular_puntos_form.recalcular_todos.id_for_label }}">
+              {{ recalcular_puntos_form.recalcular_todos.label }}
+            </label>
+          </div>
+
+          {% if recalcular_puntos_form.non_field_errors %}
+            <div class="alert alert-danger py-2 small" role="alert">
+              {{ recalcular_puntos_form.non_field_errors.0 }}
+            </div>
+          {% endif %}
+
+          <button type="submit" class="btn btn-dark">
+            <i class="bi bi-calculator me-1"></i>Recalcular
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Recent activity -->
   <div class="col-12 col-lg-6">
     <div class="card border-0 shadow-sm">

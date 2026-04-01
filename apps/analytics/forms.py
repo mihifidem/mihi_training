@@ -74,3 +74,32 @@ class AsignarMisionForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['mision'].empty_label = 'Selecciona una mision'
+
+
+class RecalcularPuntosForm(forms.Form):
+    usuario = forms.ModelChoiceField(
+        queryset=User.objects.filter(is_active=True, is_staff=False).order_by('username'),
+        required=False,
+        label='Alumno (opcional)',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+    )
+    recalcular_todos = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='Recalcular todos los alumnos',
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['usuario'].empty_label = 'Selecciona un alumno'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        usuario = cleaned_data.get('usuario')
+        recalcular_todos = cleaned_data.get('recalcular_todos')
+
+        if not usuario and not recalcular_todos:
+            raise forms.ValidationError('Selecciona un alumno o marca la opción de recalcular todos.')
+
+        return cleaned_data

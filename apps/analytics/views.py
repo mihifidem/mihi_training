@@ -8,9 +8,10 @@ from django.utils import timezone
 from datetime import timedelta
 
 from apps.users.models import User, Notificacion
-from apps.courses.models import Curso, Progreso, ResultadoQuiz, InscripcionCurso
+from apps.courses.models import Curso, Progreso, ResultadoQuiz, InscripcionCurso, TemaRecursoVisualizacion
 from apps.gamification.models import InsigniaUsuario, Logro, LogroUsuario, Mision, MisionUsuario
-from .forms import AsignarLogroForm, EnviarMensajeForm, AsignarMisionForm
+from apps.rewards.models import CanjeRecompensa
+from .forms import AsignarLogroForm, EnviarMensajeForm, AsignarMisionForm, RecalcularPuntosForm
 from .models import RegistroActividad
 
 
@@ -20,6 +21,60 @@ class DashboardAdminView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
     def test_func(self):
         return self.request.user.is_staff
+
+    @staticmethod
+    def _recalcular_puntos_usuario(usuario):
+        puntos_temas = (
+            Progreso.objects.filter(usuario=usuario, completado=True)
+            .aggregate(total=Sum('tema__puntos_otorgados'))['total'] or 0
+        )
+        puntos_quiz = (
+            ResultadoQuiz.objects.filter(usuario=usuario, aprobado=True)
+            .aggregate(total=Sum('quiz__puntos_bonus'))['total'] or 0
+        )
+        puntos_recursos = (
+            TemaRecursoVisualizacion.objects.filter(usuario=usuario)
+            .aggregate(total=Sum('puntos_otorgados'))['total'] or 0
+        )
+        puntos_logros = (
+            LogroUsuario.objects.filter(usuario=usuario)
+            .aggregate(total=Sum('puntos_asignados'))['total'] or 0
+        )
+        puntos_misiones = (
+            MisionUsuario.objects.filter(usuario=usuario, completada=True)
+            .aggregate(total=Sum('mision__puntos_recompensa'))['total'] or 0
+        )
+
+        puntos_totales_recalculados = (
+            puntos_temas + puntos_quiz + puntos_recursos + puntos_logros + puntos_misiones
+        )
+        puntos_gastados = (
+            CanjeRecompensa.objects.filter(usuario=usuario)
+            .aggregate(total=Sum('puntos_gastados'))['total'] or 0
+        )
+        puntos_recalculados = max(puntos_totales_recalculados - puntos_gastados, 0)
+
+        nuevo_nivel = 'noob'
+        for nivel, umbral in User.NIVEL_UMBRAL_PUNTOS:
+            if puntos_totales_recalculados >= umbral:
+                nuevo_nivel = nivel
+
+        cambios = {
+            'puntos': usuario.puntos,
+            'puntos_totales': usuario.puntos_totales,
+            'nivel': usuario.nivel,
+        }
+
+        usuario.puntos = puntos_recalculados
+        usuario.puntos_totales = puntos_totales_recalculados
+        usuario.nivel = nuevo_nivel
+        usuario.save(update_fields=['puntos', 'puntos_totales', 'nivel'])
+
+        return cambios, {
+            'puntos': puntos_recalculados,
+            'puntos_totales': puntos_totales_recalculados,
+            'nivel': nuevo_nivel,
+        }
 
     def post(self, request, *args, **kwargs):
         form_type = request.POST.get('form_type')
@@ -115,6 +170,36 @@ class DashboardAdminView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             context['asignar_logro_form'] = AsignarLogroForm()
             context['asignar_mision_form'] = AsignarMisionForm()
             context['enviar_mensaje_form'] = form
+            context['recalcular_puntos_form'] = RecalcularPuntosForm()
+            return self.render_to_response(context)
+
+        if form_type == 'recalcular_puntos':
+            form = RecalcularPuntosForm(request.POST)
+            if form.is_valid():
+                usuario = form.cleaned_data['usuario']
+                recalcular_todos = form.cleaned_data['recalcular_todos']
+
+                if recalcular_todos:
+                    usuarios = User.objects.filter(is_active=True, is_staff=False)
+                else:
+                    usuarios = User.objects.filter(pk=usuario.pk)
+
+                total = 0
+                for alumno in usuarios:
+                    self._recalcular_puntos_usuario(alumno)
+                    total += 1
+
+                if recalcular_todos:
+                    messages.success(request, f'Se recalcularon los puntos de {total} alumno(s).')
+                else:
+                    messages.success(request, f'Se recalcularon los puntos de {usuario.username}.')
+                return redirect('analytics:dashboard_admin')
+
+            context = self.get_context_data()
+            context['asignar_logro_form'] = AsignarLogroForm()
+            context['asignar_mision_form'] = AsignarMisionForm()
+            context['enviar_mensaje_form'] = EnviarMensajeForm(request_user=request.user)
+            context['recalcular_puntos_form'] = form
             return self.render_to_response(context)
 
         messages.error(request, 'No se pudo procesar la solicitud.')
@@ -168,6 +253,7 @@ class DashboardAdminView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         context['enviar_mensaje_form'] = context.get('enviar_mensaje_form') or EnviarMensajeForm(
             request_user=self.request.user
         )
+        context['recalcular_puntos_form'] = context.get('recalcular_puntos_form') or RecalcularPuntosForm()
 
         return context
 
