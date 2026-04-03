@@ -22,7 +22,7 @@
   <!-- Sidebar -->
   <nav id="sidebar" class="bg-primary text-white d-flex flex-column p-0" style="min-width:240px;min-height:100vh;">
     <!-- Brand -->
-    <a href="{% url 'users:dashboard' %}" class="text-white text-decoration-none p-3 d-flex align-items-center border-bottom border-white border-opacity-25">
+    <a href="{% url 'landing' %}" class="text-white text-decoration-none p-3 d-flex align-items-center border-bottom border-white border-opacity-25">
       <i class="bi bi-mortarboard-fill fs-4 me-2 text-warning"></i>
       <span class="fw-bold fs-5">MihiTraining</span>
     </a>
@@ -59,6 +59,11 @@
       <li class="nav-item">
         <a href="{% url 'courses:list' %}" class="nav-link text-white py-2 rounded sidebar-link">
           <i class="bi bi-book me-2"></i> Cursos
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{% url 'blog:list' %}" class="nav-link text-white py-2 rounded sidebar-link">
+          <i class="bi bi-journal-text me-2"></i> Blog
         </a>
       </li>
       <li class="nav-item">
@@ -176,8 +181,8 @@
 <!-- ===================== PUBLIC LAYOUT ===================== -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="/">
-      <i class="bi bi-mortarboard-fill me-2 text-warning"></i>MihiTraining
+    <a class="navbar-brand fw-bold" href="{% url 'landing' %}">
+      <i class="bi bi-mortarboard-fill me-2 text-warning"></i>NoTodoEsCódigo.com
     </a>
     <div class="ms-auto d-flex gap-2">
       <a href="{% url 'account_login' %}" class="btn btn-outline-light btn-sm">Iniciar sesión</a>

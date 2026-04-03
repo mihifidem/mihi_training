@@ -4,10 +4,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import redirect
 from django.views.generic import TemplateView
 from django.db.models import Count, Sum, Q, Avg
+from django.core.paginator import Paginator
 from django.utils import timezone
 from datetime import timedelta
 
-from apps.users.models import User, Notificacion
+from apps.users.models import User, Notificacion, Aula
 from apps.courses.models import Curso, Progreso, ResultadoQuiz, InscripcionCurso, TemaRecursoVisualizacion
 from apps.gamification.models import InsigniaUsuario, Logro, LogroUsuario, Mision, MisionUsuario
 from apps.rewards.models import CanjeRecompensa
@@ -229,10 +230,43 @@ class DashboardAdminView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             .order_by('-fallos')[:5]
         )
 
-        # Top 10 students by points
-        context['top_alumnos'] = (
-            User.objects.filter(is_active=True, is_staff=False)
-            .order_by('-puntos')[:10]
+        # Student ranking with filters and pagination for positions 11+
+        filtro_alumno = (self.request.GET.get('alumno') or '').strip()
+        filtro_aula = (self.request.GET.get('aula') or '').strip()
+        page_number = self.request.GET.get('page') or '1'
+
+        ranking_qs = User.objects.filter(is_active=True, is_staff=False).select_related('aula')
+        if filtro_alumno:
+            ranking_qs = ranking_qs.filter(
+                Q(username__icontains=filtro_alumno)
+                | Q(first_name__icontains=filtro_alumno)
+                | Q(last_name__icontains=filtro_alumno)
+                | Q(email__icontains=filtro_alumno)
+            )
+        if filtro_aula == 'sin_aula':
+            ranking_qs = ranking_qs.filter(aula__isnull=True)
+        elif filtro_aula.isdigit():
+            ranking_qs = ranking_qs.filter(aula_id=int(filtro_aula))
+
+        ranking_qs = ranking_qs.order_by('-puntos', 'username')
+        total_alumnos_ranking = ranking_qs.count()
+
+        context['alumnos_ranking'] = ranking_qs
+        context['top_alumnos'] = ranking_qs[:10]
+        context['total_alumnos_ranking'] = total_alumnos_ranking
+
+        resto_alumnos_page = None
+        if total_alumnos_ranking > 10:
+            resto_qs = ranking_qs[10:]
+            paginator = Paginator(resto_qs, 10)
+            resto_alumnos_page = paginator.get_page(page_number)
+
+        context['resto_alumnos_page'] = resto_alumnos_page
+        context['filtro_alumno'] = filtro_alumno
+        context['filtro_aula'] = filtro_aula
+        context['aulas_filtro'] = Aula.objects.order_by('nombre')
+        context['mostrar_resto_expandido'] = bool(
+            filtro_alumno or filtro_aula or (resto_alumnos_page and resto_alumnos_page.number > 1)
         )
 
         # Activity last 30 days

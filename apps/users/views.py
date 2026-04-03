@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
+from django.db.models import Avg, Count
 from django.views.generic import (
     CreateView, DetailView, UpdateView, TemplateView, View, ListView
 )
@@ -16,6 +17,27 @@ from rest_framework.response import Response
 from .models import User, Notificacion
 from .forms import RegistroForm, PerfilForm
 from .serializers import UserSerializer, NotificacionSerializer
+
+
+class LandingView(TemplateView):
+    """Public landing page with blog highlights."""
+    template_name = 'landing.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from apps.blog.models import PostBlog
+
+        context['posts_destacados'] = (
+            PostBlog.objects.filter(
+                publicado=True,
+                visibilidad=PostBlog.VISIBILIDAD_PUBLICA,
+            )
+            .select_related('categoria', 'subcategoria')
+            .prefetch_related('hashtags')
+            .annotate(promedio_rating=Avg('valoraciones__valor'), total_valoraciones=Count('valoraciones'))
+            .order_by('-destacado', '-publicado_en')[:9]
+        )
+        return context
 
 
 # ---------------------------------------------------------------------------

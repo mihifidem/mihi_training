@@ -3,17 +3,18 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.views.generic import RedirectView
+from apps.users.views import LandingView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # Redirect root to dashboard (or login if not authenticated)
-    path('', RedirectView.as_view(url='/dashboard/', permanent=False)),
+    # Public landing page
+    path('', LandingView.as_view(), name='landing'),
 
     # App URLs
     path('dashboard/', include('apps.users.urls', namespace='users')),
     path('cursos/', include('apps.courses.urls', namespace='courses')),
+    path('blog/', include('apps.blog.urls', namespace='blog')),
     path('gamificacion/', include('apps.gamification.urls', namespace='gamification')),
     path('recompensas/', include('apps.rewards.urls', namespace='rewards')),
     path('analytics/', include('apps.analytics.urls', namespace='analytics')),

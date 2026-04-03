@@ -53,6 +53,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     'apps.users',
     'apps.courses',
+    'apps.blog',
     'apps.gamification',
     'apps.rewards',
     'apps.analytics',
