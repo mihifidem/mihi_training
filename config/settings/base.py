@@ -60,6 +60,7 @@ LOCAL_APPS = [
     'apps.certifications',
     'apps.ai_tutor',
     'apps.enlaces',
+    'apps.prompts',
     'apps.api',
 ]
 

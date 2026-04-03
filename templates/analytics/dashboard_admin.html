@@ -85,7 +85,11 @@
             {% for u in top_alumnos %}
             <tr>
               <td class="text-muted fw-bold">{{ forloop.counter }}</td>
-              <td>{{ u.get_full_name|default:u.username }}</td>
+              <td>
+                <a href="{% url 'analytics:admin_alumno_puntos' usuario_id=u.id %}" class="fw-semibold text-decoration-none">
+                  {{ u.get_full_name|default:u.username }}
+                </a>
+              </td>
               <td class="small text-muted">{{ u.aula.nombre|default:'Sin aula' }}</td>
               <td class="text-end fw-bold text-warning">{{ u.puntos }}</td>
             </tr>
@@ -133,7 +137,11 @@
               {% for u in resto_alumnos_page.object_list %}
               <tr>
                 <td class="text-muted fw-bold">{{ forloop.counter0|add:resto_alumnos_page.start_index }}</td>
-                <td>{{ u.get_full_name|default:u.username }}</td>
+                <td>
+                  <a href="{% url 'analytics:admin_alumno_puntos' usuario_id=u.id %}" class="fw-semibold text-decoration-none">
+                    {{ u.get_full_name|default:u.username }}
+                  </a>
+                </td>
                 <td class="small text-muted">{{ u.aula.nombre|default:'Sin aula' }}</td>
                 <td class="text-end">{{ u.puntos }}</td>
               </tr>

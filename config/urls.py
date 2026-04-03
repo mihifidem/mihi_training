@@ -21,6 +21,7 @@ urlpatterns = [
     path('certificados/', include('apps.certifications.urls', namespace='certifications')),
     path('tutor/', include('apps.ai_tutor.urls', namespace='ai_tutor')),
     path('enlaces/', include('apps.enlaces.urls', namespace='enlaces')),
+    path('prompts/', include('apps.prompts.urls', namespace='prompts')),
 
     # API
     path('api/v1/', include('apps.api.urls')),

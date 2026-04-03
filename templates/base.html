@@ -72,6 +72,11 @@
       <li class="nav-item">
         <a href="{% url 'blog:list' %}" class="nav-link text-white py-2 rounded sidebar-link">
           <i class="bi bi-journal-text me-2"></i> Blog
+              <li class="nav-item">
+                <a href="{% url 'prompts:list' %}" class="nav-link text-white py-2 rounded sidebar-link">
+                  <i class="bi bi-robot me-2"></i> Prompts IA
+                </a>
+              </li>
         </a>
       </li>
       <li class="nav-item">
@@ -202,6 +207,7 @@
         <span class="d-none d-md-inline ms-1">Dark</span>
       </button>
       <a href="{% url 'blog:list' %}" class="btn btn-outline-light btn-sm">Blog</a>
+        <a href="{% url 'prompts:list' %}" class="btn btn-outline-light btn-sm">Prompts</a>
       <a href="{% url 'account_login' %}" class="btn btn-outline-light btn-sm">Iniciar sesión</a>
       <a href="{% url 'users:registro' %}" class="btn btn-warning btn-sm fw-semibold">Registrarse</a>
     </div>
@@ -234,7 +240,7 @@
   </div>
   {% else %}
 <footer class="bg-dark text-white text-center py-4 mt-5">
-  <small>© {% now "Y" %} MihiTraining</small>
+  <small>© {% now "Y" %} MMade with ❤️ in Barcelona by @mihifidem</small>
 </footer>
 {% endif %}
 

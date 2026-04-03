@@ -1,7 +1,7 @@
 """Views for the analytics app."""
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import TemplateView
 from django.db.models import Count, Sum, Q, Avg, F, ExpressionWrapper, DurationField
 from django.core.paginator import Paginator
@@ -450,6 +450,93 @@ class DashboardAdminView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         context['recalcular_puntos_form'] = context.get('recalcular_puntos_form') or RecalcularPuntosForm()
         context['limpiar_duplicados_form'] = context.get('limpiar_duplicados_form') or LimpiarDuplicadosPuntosForm()
 
+        return context
+
+
+class AdminAlumnoPuntosView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """Detail page to inspect and manage point records for a single student."""
+
+    template_name = 'analytics/admin_alumno_puntos.html'
+    paginate_by = 30
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def dispatch(self, request, *args, **kwargs):
+        self.alumno = get_object_or_404(
+            User.objects.select_related('aula'),
+            pk=kwargs['usuario_id'],
+            is_staff=False,
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if request.POST.get('accion') == 'recalcular_acumulado':
+            total_acumulado = (
+                RegistroActividad.objects.filter(
+                    usuario=self.alumno,
+                    puntos_ganados__gt=0,
+                ).aggregate(total=Sum('puntos_ganados'))['total'] or 0
+            )
+            self.alumno.puntos_totales = total_acumulado
+            self.alumno.puntos = total_acumulado
+            self.alumno.save(update_fields=['puntos_totales', 'puntos'])
+            self.alumno.actualizar_nivel()
+            messages.success(
+                request,
+                f'Contador acumulado actualizado: {total_acumulado} puntos (saldo actual y acumulado).',
+            )
+            return redirect('analytics:admin_alumno_puntos', usuario_id=self.alumno.pk)
+
+        registro_id = request.POST.get('registro_id')
+        if not registro_id:
+            messages.error(request, 'No se indico el registro a eliminar.')
+            return redirect('analytics:admin_alumno_puntos', usuario_id=self.alumno.pk)
+
+        registro = RegistroActividad.objects.filter(
+            pk=registro_id,
+            usuario=self.alumno,
+        ).first()
+
+        if not registro:
+            messages.error(request, 'El registro seleccionado no existe para este alumno.')
+            return redirect('analytics:admin_alumno_puntos', usuario_id=self.alumno.pk)
+
+        puntos_a_retirar = max(registro.puntos_ganados, 0)
+        registro.delete()
+
+        if puntos_a_retirar > 0:
+            self.alumno.puntos = max(self.alumno.puntos - puntos_a_retirar, 0)
+            self.alumno.puntos_totales = max(self.alumno.puntos_totales - puntos_a_retirar, 0)
+            self.alumno.save(update_fields=['puntos', 'puntos_totales'])
+            self.alumno.actualizar_nivel()
+
+        messages.success(
+            request,
+            f'Registro eliminado. Puntos ajustados: {puntos_a_retirar}.',
+        )
+        return redirect('analytics:admin_alumno_puntos', usuario_id=self.alumno.pk)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        actividades_qs = (
+            RegistroActividad.objects.filter(
+                usuario=self.alumno,
+                puntos_ganados__gt=0,
+            )
+            .order_by('-timestamp', '-id')
+        )
+
+        paginator = Paginator(actividades_qs, self.paginate_by)
+        page_number = self.request.GET.get('page') or '1'
+        actividades_page = paginator.get_page(page_number)
+
+        context['alumno'] = self.alumno
+        context['actividades_page'] = actividades_page
+        context['total_registros_puntos'] = actividades_qs.count()
+        context['total_puntos_registrados'] = (
+            actividades_qs.aggregate(total=Sum('puntos_ganados'))['total'] or 0
+        )
         return context
 
 
