@@ -31,6 +31,33 @@
   </div>
 </div>
 
+<div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
+  <div class="col">
+    <div class="card border-0 bg-dark text-white text-center py-3 shadow-sm">
+      <div class="display-6 fw-bold">{{ total_posts_publicados }}</div>
+      <small>Posts publicados</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 bg-secondary text-white text-center py-3 shadow-sm">
+      <div class="display-6 fw-bold">{{ total_lecturas_blog }}</div>
+      <small>Lecturas de blog</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 bg-primary text-white text-center py-3 shadow-sm">
+      <div class="display-6 fw-bold">{{ total_likes_blog }}</div>
+      <small>Me gusta en posts</small>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 bg-success text-white text-center py-3 shadow-sm">
+      <div class="display-6 fw-bold">{{ duracion_media_blog_segundos }}s</div>
+      <small>Tiempo medio lectura</small>
+    </div>
+  </div>
+</div>
+
 <div class="row g-4">
 
   <!-- Top students -->
@@ -408,6 +435,132 @@
           </li>
           {% endfor %}
         </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cleanup duplicate points -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-shield-check me-2 text-danger"></i>Eliminar duplicados de puntos
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate onsubmit="return confirm('Se eliminarán actividades duplicadas de lectura y se ajustarán puntos. ¿Continuar?');">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="limpiar_duplicados_puntos">
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">{{ limpiar_duplicados_form.usuario.label }}</label>
+            {{ limpiar_duplicados_form.usuario }}
+            <div class="form-text">Selecciona un alumno para limpiar solo su histórico.</div>
+            {% if limpiar_duplicados_form.usuario.errors %}
+              <div class="text-danger small mt-1">{{ limpiar_duplicados_form.usuario.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-check mb-3">
+            {{ limpiar_duplicados_form.limpiar_todos }}
+            <label class="form-check-label" for="{{ limpiar_duplicados_form.limpiar_todos.id_for_label }}">
+              {{ limpiar_duplicados_form.limpiar_todos.label }}
+            </label>
+          </div>
+
+          {% if limpiar_duplicados_form.non_field_errors %}
+            <div class="alert alert-danger py-2 small" role="alert">
+              {{ limpiar_duplicados_form.non_field_errors.0 }}
+            </div>
+          {% endif %}
+
+          <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash3 me-1"></i>Eliminar duplicados
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blog analytics per user -->
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-journal-text me-2 text-primary"></i>Uso de blog por usuario</span>
+        <small class="text-muted">lecturas, tiempo, premios y me gusta</small>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Usuario</th>
+              <th class="text-end">Posts vistos</th>
+              <th class="text-end">Tiempo lectura</th>
+              <th class="text-end">Con premio</th>
+              <th class="text-end">Me gusta</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fila in estadisticas_blog_por_usuario %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ fila.usuario.get_full_name|default:fila.usuario.username }}</div>
+                <div class="small text-muted">{{ fila.usuario.username }}</div>
+              </td>
+              <td class="text-end">{{ fila.posts_vistos }}</td>
+              <td class="text-end">{{ fila.tiempo_total_segundos }}s</td>
+              <td class="text-end">
+                <span class="badge bg-success">{{ fila.premios_obtenidos }}</span>
+              </td>
+              <td class="text-end">
+                <span class="badge bg-primary">{{ fila.me_gusta }}</span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-3">Sin actividad de blog registrada.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Course analytics per user -->
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-mortarboard me-2 text-success"></i>Estadística de cursos por usuario</span>
+        <small class="text-muted">inscripciones, completados, quiz y puntos</small>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Usuario</th>
+              <th class="text-end">Inscripciones</th>
+              <th class="text-end">Cursos completados</th>
+              <th class="text-end">Temas completados</th>
+              <th class="text-end">Quiz aprobados</th>
+              <th class="text-end">Puntos cursos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fila in estadisticas_curso_por_usuario %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ fila.usuario.get_full_name|default:fila.usuario.username }}</div>
+                <div class="small text-muted">{{ fila.usuario.username }}</div>
+                {% if fila.usuario.aula %}<div class="small"><span class="badge bg-secondary">{{ fila.usuario.aula }}</span></div>{% endif %}
+              </td>
+              <td class="text-end">{{ fila.inscripciones }}</td>
+              <td class="text-end">{{ fila.cursos_completados }}</td>
+              <td class="text-end">{{ fila.temas_completados }}</td>
+              <td class="text-end">{{ fila.quiz_aprobados }}</td>
+              <td class="text-end"><span class="badge bg-warning text-dark">{{ fila.puntos_curso }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center text-muted py-3">Sin actividad de cursos registrada.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>

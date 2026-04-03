@@ -7,10 +7,10 @@
   <div class="col-12 col-xl-9">
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-body">
-        <form method="get" class="row g-2 align-items-end">
+        <form id="blogFilterForm" method="get" class="row g-2 align-items-end">
           <div class="col-12 col-md-4">
             <label class="form-label small fw-semibold mb-1">Buscar</label>
-            <input type="text" name="q" value="{{ q_actual }}" class="form-control form-control-sm" placeholder="Titulo, resumen o contenido">
+            <input id="blogSearchInput" type="text" name="q" value="{{ q_actual }}" class="form-control form-control-sm" placeholder="Titulo, resumen o contenido" autocomplete="off">
           </div>
           <div class="col-12 col-md-3">
             <label class="form-label small fw-semibold mb-1">Categoria</label>
@@ -169,4 +169,33 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    const form = document.getElementById('blogFilterForm');
+    const searchInput = document.getElementById('blogSearchInput');
+    if (!form) return;
+
+    const autoSubmitSelects = form.querySelectorAll('select[name="categoria"], select[name="subcategoria"], select[name="hashtag"]');
+
+    autoSubmitSelects.forEach(function (selectEl) {
+      selectEl.addEventListener('change', function () {
+        form.submit();
+      });
+    });
+
+    if (!searchInput) return;
+
+    let debounceTimer = null;
+
+    searchInput.addEventListener('input', function () {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function () {
+        form.submit();
+      }, 350);
+    });
+  })();
+</script>
 {% endblock %}

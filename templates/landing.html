@@ -2,57 +2,207 @@
 {% load static %}
 {% block title %}MihiTraining - Aprende y progresa{% endblock %}
 
+{% block extra_css %}
+<style>
+  .landing-tech {
+    background:
+      radial-gradient(circle at 15% 20%, rgba(14, 165, 233, 0.18), transparent 35%),
+      radial-gradient(circle at 80% 10%, rgba(16, 185, 129, 0.16), transparent 40%),
+      linear-gradient(160deg, #f8fbff 0%, #eef7ff 48%, #f8fffd 100%);
+  }
+
+  .hero-panel {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 1rem;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 18px 35px rgba(15, 23, 42, 0.09);
+    animation: riseIn 0.55s ease-out;
+  }
+
+  .brand-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    background: #0f172a;
+    color: #f8fafc;
+    font-size: .78rem;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    padding: .45rem .75rem;
+    border-radius: 999px;
+  }
+
+  .hero-title {
+    color: #0f172a;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-subtitle {
+    color: #334155;
+    max-width: 60ch;
+  }
+
+  .hero-logo-wrap {
+    background: linear-gradient(140deg, rgba(255, 255, 255, 0.78), rgba(241, 245, 249, 0.62));
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 1rem;
+    padding: 1.1rem;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+    animation: riseIn 0.7s ease-out;
+  }
+
+  .hero-logo {
+    width: 100%;
+    max-height: 600px;
+    object-fit: contain;
+  }
+
+  .section-title {
+    color: #0f172a;
+    letter-spacing: -0.01em;
+  }
+
+  .post-card-tech {
+    border-radius: 1rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+
+  .post-card-tech:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 30px rgba(15, 23, 42, 0.13);
+  }
+
+  .post-thumb-fallback {
+    height: 180px;
+    background: linear-gradient(145deg, rgba(14, 165, 233, .16), rgba(16, 185, 129, .12));
+  }
+
+  .tag-tech {
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: .72rem;
+  }
+
+  [data-bs-theme="dark"] .landing-tech {
+    background:
+      radial-gradient(circle at 10% 15%, rgba(56, 189, 248, 0.16), transparent 34%),
+      radial-gradient(circle at 85% 12%, rgba(45, 212, 191, 0.12), transparent 40%),
+      linear-gradient(165deg, #020617 0%, #0b1220 52%, #0f172a 100%);
+  }
+
+  [data-bs-theme="dark"] .hero-panel {
+    background: rgba(15, 23, 42, 0.72);
+    border-color: rgba(148, 163, 184, 0.22);
+    box-shadow: 0 20px 36px rgba(2, 6, 23, 0.5);
+  }
+
+  [data-bs-theme="dark"] .brand-chip {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+
+  [data-bs-theme="dark"] .hero-title,
+  [data-bs-theme="dark"] .section-title {
+    color: #f8fafc;
+  }
+
+  [data-bs-theme="dark"] .hero-subtitle {
+    color: #cbd5e1;
+  }
+
+  [data-bs-theme="dark"] .hero-logo-wrap {
+    background: linear-gradient(140deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.82));
+    border-color: rgba(148, 163, 184, 0.24);
+    box-shadow: 0 22px 38px rgba(2, 6, 23, 0.5);
+  }
+
+  [data-bs-theme="dark"] .post-card-tech {
+    border-color: rgba(148, 163, 184, 0.2);
+    background: rgba(15, 23, 42, 0.86);
+    box-shadow: 0 12px 24px rgba(2, 6, 23, 0.45);
+  }
+
+  [data-bs-theme="dark"] .post-card-tech:hover {
+    box-shadow: 0 16px 32px rgba(2, 6, 23, 0.6);
+  }
+
+  [data-bs-theme="dark"] .post-thumb-fallback {
+    background: linear-gradient(145deg, rgba(14, 116, 144, .3), rgba(15, 118, 110, .24));
+  }
+
+  [data-bs-theme="dark"] .post-card-tech h3 {
+    color: #f8fafc;
+  }
+
+  @keyframes riseIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="py-5 bg-white border-bottom">
+<section class="py-5 landing-tech border-bottom">
   <div class="container">
     <div class="row align-items-center g-4">
       <div class="col-12 col-lg-7">
-        <span class="badge bg-warning text-dark mb-3">MihiTraining</span>
-        <h1 class="display-5 fw-bold mb-3">Aprende, practica y sube de nivel cada dia</h1>
-        <p class="lead text-muted mb-4">
-          Explora cursos, completa misiones y mejora tu perfil profesional con aprendizaje gamificado.
-          Aqui tienes los posts publicos mas recientes del blog.
-        </p>
-        <div class="d-flex flex-wrap gap-2">
-          <a href="{% url 'account_login' %}" class="btn btn-primary">Entrar</a>
-          <a href="{% url 'users:registro' %}" class="btn btn-outline-primary">Crear cuenta</a>
+        <div class="hero-panel p-4 p-lg-5">
+          <span class="brand-chip mb-3">
+            <i class="bi bi-cpu"></i>
+            NoTodoEsCodigo.com
+          </span>
+          <h1 class="display-5 fw-bold mb-3 hero-title">Aprende, practica y crea tu perfil tech en un solo ecosistema</h1>
+          <p class="lead mb-4 hero-subtitle">
+            MihiTraining, blog y herramientas de empleabilidad en una experiencia moderna: contenido accionable, aprendizaje gamificado y crecimiento profesional continuo.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'account_login' %}" class="btn btn-primary">Entrar</a>
+            <a href="{% url 'users:registro' %}" class="btn btn-outline-primary">Crear cuenta</a>
+          </div>
         </div>
       </div>
-      <div class="col-12 col-lg-5 text-center">
-        <img src="{% static 'img/logo_mihi.png' %}" alt="Logo MihiTraining" class="img-fluid" style="max-height:600px;">
+      <div class="col-12 col-lg-5">
+        <div class="hero-logo-wrap text-center">
+          <img src="{% static 'img/logo_mihi.png' %}" alt="Logo MihiTraining" class="hero-logo">
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="py-5">
+<section class="py-5 landing-tech">
   <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2 class="h4 mb-0">Blog abierto</h2>
-      <a href="{% url 'account_login' %}" class="btn btn-sm btn-outline-secondary">Inicia sesion para leer y valorar</a>
+      <h2 class="h4 mb-0 section-title">Blog abierto</h2>
+      <a href="{% url 'blog:list' %}" class="btn btn-sm btn-outline-secondary">Ver todos los posts</a>
     </div>
 
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
       {% for post in posts_destacados %}
       <div class="col">
-        <div class="card border-0 shadow-sm h-100">
+        <div class="card post-card-tech h-100">
           {% if post.imagen %}
           <img src="{{ post.imagen.url }}" class="card-img-top" style="height:180px;object-fit:cover;" alt="{{ post.titulo }}">
           {% else %}
-          <div class="card-img-top bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="height:180px;">
+          <div class="card-img-top post-thumb-fallback d-flex align-items-center justify-content-center">
             <i class="bi bi-journal-richtext display-4 text-primary opacity-50"></i>
           </div>
           {% endif %}
 
           <div class="card-body d-flex flex-column">
             <div class="d-flex flex-wrap gap-1 mb-2">
-              <span class="badge bg-info-subtle text-info-emphasis border">{{ post.categoria.nombre }}</span>
+              <span class="badge bg-info-subtle text-info-emphasis border tag-tech">{{ post.categoria.nombre }}</span>
               {% if post.visibilidad == 'publico' %}
-              <span class="badge text-bg-success">Público</span>
+              <span class="badge text-bg-success tag-tech">Público</span>
               {% elif post.visibilidad == 'semipublico' %}
-              <span class="badge text-bg-warning">Semipúblico</span>
+              <span class="badge text-bg-warning tag-tech">Semipúblico</span>
               {% else %}
-              <span class="badge text-bg-dark">Premium</span>
+              <span class="badge text-bg-dark tag-tech">Premium</span>
               {% endif %}
             </div>
 

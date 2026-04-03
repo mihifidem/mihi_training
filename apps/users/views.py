@@ -73,6 +73,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         from apps.courses.models import InscripcionCurso, Progreso
         from apps.gamification.models import InsigniaUsuario, LogroUsuario, MisionUsuario
         from apps.rewards.models import CanjeRecompensa
+        from apps.blog.models import LecturaPostUsuario
 
         inscripciones = InscripcionCurso.objects.filter(
             usuario=user
@@ -94,6 +95,16 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             usuario=user
         ).select_related('recompensa').order_by('-fecha_canje')[:6]
 
+        lecturas_posts = LecturaPostUsuario.objects.filter(
+            usuario=user
+        ).select_related('post').order_by('-iniciada_en')[:8]
+
+        total_posts_vistos = LecturaPostUsuario.objects.filter(usuario=user).count()
+        total_posts_con_puntos = LecturaPostUsuario.objects.filter(
+            usuario=user,
+            puntos_otorgados=True,
+        ).count()
+
         actividades = user.actividades.order_by('-timestamp')[:10]
 
         context.update({
@@ -103,6 +114,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'canjes_recientes': canjes_recientes,
             'misiones_activas': misiones_activas,
             'actividades': actividades,
+            'lecturas_posts': lecturas_posts,
+            'total_posts_vistos': total_posts_vistos,
+            'total_posts_con_puntos': total_posts_con_puntos,
         })
         return context
 

@@ -22,7 +22,10 @@
   <div class="col">
     <div class="card border-0 shadow-sm h-100 {% if not recompensa.disponible %}opacity-50{% endif %}">
       {% if recompensa.imagen %}
-        <img src="{{ recompensa.imagen.url }}" class="card-img-top" style="height:150px;object-fit:cover;" alt="{{ recompensa.nombre }}">
+        <img src="{{ recompensa.imagen.url }}" class="card-img-top" style="height:150px;object-fit:cover;" alt="{{ recompensa.nombre }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="card-img-top bg-warning bg-opacity-10 align-items-center justify-content-center" style="height:150px;display:none;">
+          <i class="bi bi-gift display-4 text-warning opacity-50"></i>
+        </div>
       {% else %}
         <div class="card-img-top bg-warning bg-opacity-10 d-flex align-items-center justify-content-center" style="height:150px;">
           <i class="bi bi-gift display-4 text-warning opacity-50"></i>

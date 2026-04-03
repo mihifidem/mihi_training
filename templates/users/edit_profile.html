@@ -28,3 +28,24 @@
   </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    const codigoInput = document.querySelector('input[name="codigo_acceso_alumno"]');
+    const aulaSelect = document.querySelector('select[name="aula"]');
+    if (!codigoInput || !aulaSelect) return;
+
+    function syncAulaAvailability() {
+      const valido = (codigoInput.value || '').trim() === '010819';
+      aulaSelect.disabled = !valido;
+      if (!valido) {
+        aulaSelect.selectedIndex = 0;
+      }
+    }
+
+    codigoInput.addEventListener('input', syncAulaAvailability);
+    syncAulaAvailability();
+  })();
+</script>
+{% endblock %}

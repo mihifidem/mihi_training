@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import redirect
 from django.views.generic import TemplateView
-from django.db.models import Count, Sum, Q, Avg
+from django.db.models import Count, Sum, Q, Avg, F, ExpressionWrapper, DurationField
 from django.core.paginator import Paginator
 from django.utils import timezone
 from datetime import timedelta
@@ -12,7 +12,14 @@ from apps.users.models import User, Notificacion, Aula
 from apps.courses.models import Curso, Progreso, ResultadoQuiz, InscripcionCurso, TemaRecursoVisualizacion
 from apps.gamification.models import InsigniaUsuario, Logro, LogroUsuario, Mision, MisionUsuario
 from apps.rewards.models import CanjeRecompensa
-from .forms import AsignarLogroForm, EnviarMensajeForm, AsignarMisionForm, RecalcularPuntosForm
+from apps.blog.models import PostBlog, LecturaPostUsuario, ValoracionPost
+from .forms import (
+    AsignarLogroForm,
+    EnviarMensajeForm,
+    AsignarMisionForm,
+    RecalcularPuntosForm,
+    LimpiarDuplicadosPuntosForm,
+)
 from .models import RegistroActividad
 
 
@@ -76,6 +83,55 @@ class DashboardAdminView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             'puntos_totales': puntos_totales_recalculados,
             'nivel': nuevo_nivel,
         }
+
+    @staticmethod
+    def _duracion_a_segundos(valor):
+        if not valor:
+            return 0
+        return int(valor.total_seconds())
+
+    @staticmethod
+    def _limpiar_duplicados_puntos(usuarios_qs):
+        duplicados = (
+            RegistroActividad.objects.filter(
+                usuario__in=usuarios_qs,
+                puntos_ganados__gt=0,
+                tipo='acceso',
+                descripcion__startswith='Lectura completada del post:',
+            )
+            .values('usuario_id', 'tipo', 'descripcion', 'puntos_ganados')
+            .annotate(total=Count('id'))
+            .filter(total__gt=1)
+        )
+
+        total_registros_eliminados = 0
+        total_puntos_ajustados = 0
+
+        for grupo in duplicados:
+            actividades = RegistroActividad.objects.filter(
+                usuario_id=grupo['usuario_id'],
+                tipo=grupo['tipo'],
+                descripcion=grupo['descripcion'],
+                puntos_ganados=grupo['puntos_ganados'],
+            ).order_by('timestamp', 'id')
+
+            ids_a_eliminar = list(actividades.values_list('id', flat=True))[1:]
+            if not ids_a_eliminar:
+                continue
+
+            puntos_a_retirar = grupo['puntos_ganados'] * len(ids_a_eliminar)
+            usuario = User.objects.filter(pk=grupo['usuario_id']).first()
+            if usuario:
+                usuario.puntos = max(usuario.puntos - puntos_a_retirar, 0)
+                usuario.puntos_totales = max(usuario.puntos_totales - puntos_a_retirar, 0)
+                usuario.actualizar_nivel()
+                usuario.save(update_fields=['puntos', 'puntos_totales'])
+
+            borrados, _ = RegistroActividad.objects.filter(id__in=ids_a_eliminar).delete()
+            total_registros_eliminados += borrados
+            total_puntos_ajustados += puntos_a_retirar
+
+        return total_registros_eliminados, total_puntos_ajustados
 
     def post(self, request, *args, **kwargs):
         form_type = request.POST.get('form_type')
@@ -201,6 +257,34 @@ class DashboardAdminView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             context['asignar_mision_form'] = AsignarMisionForm()
             context['enviar_mensaje_form'] = EnviarMensajeForm(request_user=request.user)
             context['recalcular_puntos_form'] = form
+            context['limpiar_duplicados_form'] = LimpiarDuplicadosPuntosForm()
+            return self.render_to_response(context)
+
+        if form_type == 'limpiar_duplicados_puntos':
+            form = LimpiarDuplicadosPuntosForm(request.POST)
+            if form.is_valid():
+                usuario = form.cleaned_data['usuario']
+                limpiar_todos = form.cleaned_data['limpiar_todos']
+
+                if limpiar_todos:
+                    usuarios_qs = User.objects.filter(is_active=True, is_staff=False)
+                else:
+                    usuarios_qs = User.objects.filter(pk=usuario.pk)
+
+                total_registros_eliminados, total_puntos_ajustados = self._limpiar_duplicados_puntos(usuarios_qs)
+                messages.success(
+                    request,
+                    f'Limpieza completada. Registros eliminados: {total_registros_eliminados}. '
+                    f'Puntos ajustados: {total_puntos_ajustados}.',
+                )
+                return redirect('analytics:dashboard_admin')
+
+            context = self.get_context_data()
+            context['asignar_logro_form'] = AsignarLogroForm()
+            context['asignar_mision_form'] = AsignarMisionForm()
+            context['enviar_mensaje_form'] = EnviarMensajeForm(request_user=request.user)
+            context['recalcular_puntos_form'] = RecalcularPuntosForm()
+            context['limpiar_duplicados_form'] = form
             return self.render_to_response(context)
 
         messages.error(request, 'No se pudo procesar la solicitud.')
@@ -217,6 +301,21 @@ class DashboardAdminView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         context['nuevos_usuarios_30d'] = User.objects.filter(
             date_joined__gte=last_30, is_staff=False
         ).count()
+
+        context['total_posts_publicados'] = PostBlog.objects.filter(publicado=True).count()
+        context['total_lecturas_blog'] = LecturaPostUsuario.objects.count()
+        context['total_likes_blog'] = ValoracionPost.objects.count()
+        context['lecturas_con_premio'] = LecturaPostUsuario.objects.filter(puntos_otorgados=True).count()
+
+        duracion_media_blog = LecturaPostUsuario.objects.filter(completada_en__isnull=False).aggregate(
+            promedio=Avg(
+                ExpressionWrapper(
+                    F('completada_en') - F('iniciada_en'),
+                    output_field=DurationField(),
+                )
+            )
+        )['promedio']
+        context['duracion_media_blog_segundos'] = self._duracion_a_segundos(duracion_media_blog)
 
         # Most difficult topics (highest failure rate in quizzes)
         context['temas_dificiles'] = (
@@ -280,6 +379,67 @@ class DashboardAdminView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             .order_by('-inscritos')[:5]
         )
 
+        usuarios_base = User.objects.filter(is_active=True, is_staff=False).order_by('-puntos_totales', 'username')[:30]
+
+        estadisticas_blog_por_usuario = []
+        estadisticas_curso_por_usuario = []
+        for usuario in usuarios_base:
+            lecturas_qs = LecturaPostUsuario.objects.filter(usuario=usuario)
+            lecturas_completas_qs = lecturas_qs.filter(completada_en__isnull=False)
+            tiempo_total = lecturas_completas_qs.aggregate(
+                total=Sum(
+                    ExpressionWrapper(
+                        F('completada_en') - F('iniciada_en'),
+                        output_field=DurationField(),
+                    )
+                )
+            )['total']
+
+            estadisticas_blog_por_usuario.append(
+                {
+                    'usuario': usuario,
+                    'posts_vistos': lecturas_qs.count(),
+                    'premios_obtenidos': lecturas_qs.filter(puntos_otorgados=True).count(),
+                    'me_gusta': ValoracionPost.objects.filter(usuario=usuario).count(),
+                    'tiempo_total_segundos': self._duracion_a_segundos(tiempo_total),
+                }
+            )
+
+            puntos_temas = (
+                Progreso.objects.filter(usuario=usuario, completado=True)
+                .aggregate(total=Sum('tema__puntos_otorgados'))['total'] or 0
+            )
+            puntos_quiz = (
+                ResultadoQuiz.objects.filter(usuario=usuario, aprobado=True)
+                .aggregate(total=Sum('quiz__puntos_bonus'))['total'] or 0
+            )
+            puntos_recursos = (
+                TemaRecursoVisualizacion.objects.filter(usuario=usuario)
+                .aggregate(total=Sum('puntos_otorgados'))['total'] or 0
+            )
+
+            estadisticas_curso_por_usuario.append(
+                {
+                    'usuario': usuario,
+                    'inscripciones': InscripcionCurso.objects.filter(usuario=usuario).count(),
+                    'cursos_completados': InscripcionCurso.objects.filter(usuario=usuario, completado=True).count(),
+                    'temas_completados': Progreso.objects.filter(usuario=usuario, completado=True).count(),
+                    'quiz_aprobados': ResultadoQuiz.objects.filter(usuario=usuario, aprobado=True).count(),
+                    'puntos_curso': puntos_temas + puntos_quiz + puntos_recursos,
+                }
+            )
+
+        context['estadisticas_blog_por_usuario'] = sorted(
+            estadisticas_blog_por_usuario,
+            key=lambda item: (item['posts_vistos'], item['premios_obtenidos'], item['me_gusta']),
+            reverse=True,
+        )[:20]
+        context['estadisticas_curso_por_usuario'] = sorted(
+            estadisticas_curso_por_usuario,
+            key=lambda item: (item['puntos_curso'], item['temas_completados'], item['quiz_aprobados']),
+            reverse=True,
+        )[:20]
+
         context['logros_creados'] = Logro.objects.select_related('insignia').order_by('nombre')
         context['asignar_logro_form'] = context.get('asignar_logro_form') or AsignarLogroForm()
         context['asignar_mision_form'] = context.get('asignar_mision_form') or AsignarMisionForm()
@@ -288,6 +448,7 @@ class DashboardAdminView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             request_user=self.request.user
         )
         context['recalcular_puntos_form'] = context.get('recalcular_puntos_form') or RecalcularPuntosForm()
+        context['limpiar_duplicados_form'] = context.get('limpiar_duplicados_form') or LimpiarDuplicadosPuntosForm()
 
         return context
 

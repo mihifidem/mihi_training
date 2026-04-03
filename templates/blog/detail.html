@@ -120,17 +120,9 @@
 
     <div class="card border-0 shadow-sm">
       <div class="card-body d-flex flex-column flex-md-row justify-content-between gap-2 align-items-md-center">
-        <div>
-          <h2 class="h6 fw-semibold mb-1">Puntos por lectura</h2>
-          <p class="small text-muted mb-0">
-            Mantiene este post abierto durante <strong>{{ segundos_requeridos }} segundos</strong> para ganar <strong>{{ puntos_lectura }} puntos</strong>.
-          </p>
-        </div>
-        {% if not user.is_authenticated %}
-        <a href="{% url 'account_login' %}" class="btn btn-sm btn-outline-success">Inicia sesion para ganar puntos</a>
-        {% elif lectura_completada %}
+        {% if lectura_completada %}
         <span class="badge text-bg-success p-2">Puntos de lectura ya obtenidos</span>
-        {% else %}
+        {% elif user.is_authenticated %}
         <button id="btnLecturaCompleta" class="btn btn-sm btn-success" data-url="{% url 'blog:lectura_completa' slug=post.slug %}" disabled>
           Espera <span id="contadorLectura">{{ segundos_requeridos }}</span>s
         </button>
