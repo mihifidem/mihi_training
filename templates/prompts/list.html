@@ -78,9 +78,14 @@
         <div class="card border-0 shadow-sm h-100 position-relative">
 
           <!-- Icon header -->
+          {% if prompt.imagen_muestra %}
+          <img src="{{ prompt.imagen_muestra.url }}" class="card-img-top"
+               style="height:120px;object-fit:cover;" alt="{{ prompt.titulo }}">
+          {% else %}
           <div class="card-img-top bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="height:120px;">
             <i class="bi bi-robot display-4 text-primary opacity-75"></i>
           </div>
+          {% endif %}
 
           <!-- Favorite button overlay -->
           {% if user.is_authenticated %}

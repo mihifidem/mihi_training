@@ -135,6 +135,10 @@ ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = 'optional'
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_FORMS = {
+    'reset_password': 'apps.users.forms.BootstrapResetPasswordForm',
+    'reset_password_from_key': 'apps.users.forms.BootstrapResetPasswordKeyForm',
+}
 
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
@@ -147,6 +151,7 @@ SOCIALACCOUNT_PROVIDERS = {
         },
     }
 }
+SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # ---------------------------------------------------------------------------
 # Internationalization
@@ -243,3 +248,5 @@ OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 # ---------------------------------------------------------------------------
 SITE_URL = env('SITE_URL', default='http://localhost:8000')
 SITE_NAME = env('SITE_NAME', default='MihiTraining')
+GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID', default='')
+GOOGLE_CLIENT_SECRET = env('GOOGLE_CLIENT_SECRET', default='')

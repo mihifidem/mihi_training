@@ -3,6 +3,15 @@
 {% block page_title %}Blog{% endblock %}
 
 {% block extra_css %}
+{% load static %}
+{# SEO meta tags #}
+<meta name="description" content="{{ post.resumen|default:post.titulo|truncatechars:160 }}">
+<meta name="keywords" content="{% for tag in post.hashtags.all %}{{ tag.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+<meta property="og:title" content="{{ post.titulo }}">
+<meta property="og:description" content="{{ post.resumen|default:post.titulo|truncatechars:200 }}">
+{% if post.imagen %}<meta property="og:image" content="{{ request.build_absolute_uri }}{{ post.imagen.url }}">{% endif %}
+<meta property="og:type" content="article">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   .ducky-rating input[type='radio'] { display: none; }
   .ducky-rating label {

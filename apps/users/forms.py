@@ -1,6 +1,7 @@
 """Forms for the users app."""
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
+from allauth.account.forms import ResetPasswordForm, ResetPasswordKeyForm
 
 from .models import Aula, User
 
@@ -112,3 +113,22 @@ class PerfilForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+
+def _add_bootstrap_classes(form):
+    """Add form-control / form-select CSS classes to all widgets."""
+    for field in form.fields.values():
+        css = 'form-select' if isinstance(field.widget, forms.Select) else 'form-control'
+        field.widget.attrs.setdefault('class', css)
+
+
+class BootstrapResetPasswordForm(ResetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _add_bootstrap_classes(self)
+
+
+class BootstrapResetPasswordKeyForm(ResetPasswordKeyForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _add_bootstrap_classes(self)

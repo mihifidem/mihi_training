@@ -69,6 +69,10 @@ class PromptAdmin(admin.ModelAdmin):
         ('Publicacion', {
             'fields': ('visibilidad', 'publicado', 'destacado', 'publicado_en'),
         }),
+        ('Imagen de muestra', {
+            'fields': ('imagen_muestra',),
+            'description': 'Sube una imagen de muestra si el prompt genera o trabaja con imágenes.',
+        }),
         ('Auditoria', {
             'fields': ('creado_en', 'actualizado_en'),
             'classes': ('collapse',),

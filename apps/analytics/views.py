@@ -287,6 +287,31 @@ class DashboardAdminView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             context['limpiar_duplicados_form'] = form
             return self.render_to_response(context)
 
+        if form_type == 'generar_posts_ia':
+            keyword = request.POST.get('keyword', 'python').strip() or 'python'
+            max_items = max(1, min(int(request.POST.get('max_items', 3) or 3), 10))
+            categoria = request.POST.get('categoria', 'Tecnología').strip() or 'Tecnología'
+            publicar = request.POST.get('publicar') == '1'
+            con_imagen = request.POST.get('con_imagen') == '1'
+            try:
+                from django.core.management import call_command
+                call_command(
+                    'generar_posts',
+                    keyword=keyword,
+                    max=max_items,
+                    categoria=categoria,
+                    publicar=publicar,
+                    con_imagen=con_imagen,
+                )
+                messages.success(
+                    request,
+                    f'✅ Generación lanzada: keyword="{keyword}", {max_items} artículo(s). '
+                    f'Revisa el blog {"(publicados)" if publicar else "(borradores)"}.',
+                )
+            except Exception as exc:
+                messages.error(request, f'❌ Error al generar posts: {exc}')
+            return redirect('analytics:dashboard_admin')
+
         messages.error(request, 'No se pudo procesar la solicitud.')
         return redirect('analytics:dashboard_admin')
 
@@ -303,6 +328,7 @@ class DashboardAdminView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         ).count()
 
         context['total_posts_publicados'] = PostBlog.objects.filter(publicado=True).count()
+        context['total_posts_borradores'] = PostBlog.objects.filter(publicado=False).count()
         context['total_lecturas_blog'] = LecturaPostUsuario.objects.count()
         context['total_likes_blog'] = ValoracionPost.objects.count()
         context['lecturas_con_premio'] = LecturaPostUsuario.objects.filter(puntos_otorgados=True).count()

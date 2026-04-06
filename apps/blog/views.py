@@ -22,18 +22,19 @@ from .models import (
 
 
 def _es_premium(usuario):
+    """Puede ver contenido_privado y posts privados."""
     if not usuario.is_authenticated:
         return False
-    return usuario.is_staff or usuario.role == 'premium'
+    return usuario.is_staff or getattr(usuario, 'role', '') in {'alumno', 'freemium', 'premium'}
 
 
 def _es_usuario_registrado_valido(usuario):
+    """Puede ver posts semipúblicos (basic incluido)."""
     if not usuario.is_authenticated:
         return False
     if usuario.is_staff:
         return True
-    # freemium se mapea al rol "basic" del proyecto.
-    return usuario.role in {'alumno', 'basic', 'freemium', 'premium'}
+    return getattr(usuario, 'role', '') in {'alumno', 'basic', 'freemium', 'premium'}
 
 
 def _puede_ver_post(usuario, post):
@@ -42,7 +43,7 @@ def _puede_ver_post(usuario, post):
     if post.visibilidad == PostBlog.VISIBILIDAD_SEMIPUBLICA:
         return _es_usuario_registrado_valido(usuario)
     if post.visibilidad == PostBlog.VISIBILIDAD_PRIVADA:
-        return _es_usuario_registrado_valido(usuario)
+        return _es_premium(usuario)
     return False
 
 
@@ -51,8 +52,12 @@ def _posts_visibles_para_usuario(usuario):
         publicado=True,
         publicado_en__lte=timezone.now(),
     )
-    if _es_usuario_registrado_valido(usuario):
+    if _es_premium(usuario):
         return queryset
+    if _es_usuario_registrado_valido(usuario):
+        return queryset.filter(
+            visibilidad__in=[PostBlog.VISIBILIDAD_PUBLICA, PostBlog.VISIBILIDAD_SEMIPUBLICA]
+        )
     return queryset.filter(visibilidad=PostBlog.VISIBILIDAD_PUBLICA)
 
 
@@ -258,3 +263,42 @@ class RegistrarLecturaCompletaView(LoginRequiredMixin, View):
             )
 
         return JsonResponse({'ok': True, 'completo': True, 'puntos_ganados': 0})
+
+
+# ---------------------------------------------------------------------------
+# API ViewSet (DRF)
+# ---------------------------------------------------------------------------
+
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+from .serializers import PostBlogDetailSerializer, PostBlogListSerializer
+
+
+class PostBlogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    GET /api/posts/         — listado paginado de posts publicados.
+    GET /api/posts/{slug}/  — detalle de un post (contenido_privado solo para premium).
+    """
+    lookup_field = 'slug'
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        return (
+            _posts_visibles_para_usuario(self.request.user)
+            .select_related('categoria', 'subcategoria')
+            .prefetch_related('hashtags')
+            .order_by('-destacado', '-publicado_en')
+        )
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return PostBlogDetailSerializer
+        return PostBlogListSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+

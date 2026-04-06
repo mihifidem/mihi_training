@@ -427,6 +427,74 @@
     </div>
   </div>
 
+  <!-- Generador IA de posts -->
+  <div class="col-12 col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-robot me-2 text-primary"></i>Generador IA de Posts</span>
+        <span class="badge bg-secondary">{{ total_posts_borradores }} borrador{{ total_posts_borradores|pluralize:"es" }}</span>
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate
+              onsubmit="return confirm('¿Lanzar generación de posts con IA? Puede tardar hasta 1 minuto.');">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="generar_posts_ia">
+          <div class="row g-2 mb-3">
+            <div class="col-12 col-sm-6">
+              <label class="form-label small fw-semibold mb-1">Keyword (tag Medium)</label>
+              <input type="text" name="keyword" value="python"
+                     class="form-control form-control-sm" placeholder="ej: django, ai, python">
+              <div class="form-text">Tag que se buscará en Medium</div>
+            </div>
+            <div class="col-6 col-sm-3">
+              <label class="form-label small fw-semibold mb-1">Artículos (max 10)</label>
+              <input type="number" name="max_items" value="3" min="1" max="10"
+                     class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-sm-3">
+              <label class="form-label small fw-semibold mb-1">Categoría</label>
+              <input type="text" name="categoria" value="Tecnología"
+                     class="form-control form-control-sm">
+            </div>
+          </div>
+          <div class="d-flex flex-wrap gap-3 mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="publicar" value="1" id="chkPublicar">
+              <label class="form-check-label small" for="chkPublicar">
+                Publicar directamente <span class="text-muted">(si no, queda borrador)</span>
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="con_imagen" value="1" id="chkImagen">
+              <label class="form-check-label small" for="chkImagen">
+                Imagen DALL·E <span class="text-muted">(más lento, consume créditos)</span>
+              </label>
+            </div>
+          </div>
+          <div class="d-flex gap-2 flex-wrap align-items-center">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-stars me-1"></i>Generar posts
+            </button>
+            {% if total_posts_borradores %}
+            <a href="{% url 'admin:blog_postblog_changelist' %}?publicado__exact=0"
+               class="btn btn-outline-warning btn-sm">
+              <i class="bi bi-pencil-square me-1"></i>Revisar {{ total_posts_borradores }} borrador{{ total_posts_borradores|pluralize:"es" }}
+            </a>
+            {% endif %}
+            <a href="{% url 'blog:list' %}" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-eye me-1"></i>Ver blog
+            </a>
+          </div>
+          <div class="alert alert-info small mt-3 mb-0 py-2">
+            <i class="bi bi-info-circle me-1"></i>
+            Usa <strong>GPT-4o-mini</strong>. Necesita <code>OPENAI_API_KEY</code> configurada.
+            ~10-30 seg/artículo.
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Recent activity -->
   <div class="col-12 col-lg-6">
     <div class="card border-0 shadow-sm">

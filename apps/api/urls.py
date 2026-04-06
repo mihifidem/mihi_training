@@ -13,6 +13,7 @@ from apps.courses.views import CursoViewSet, TemaViewSet, ResultadoQuizViewSet
 from apps.gamification.views import InsigniaViewSet, MisionUsuarioViewSet
 from apps.rewards.views import RecompensaViewSet, CanjeViewSet
 from apps.certifications.views import CertificadoViewSet
+from apps.blog.views import PostBlogViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -25,6 +26,7 @@ router.register(r'missions', MisionUsuarioViewSet, basename='mision_usuario')
 router.register(r'rewards', RecompensaViewSet, basename='recompensa')
 router.register(r'redemptions', CanjeViewSet, basename='canje')
 router.register(r'certificates', CertificadoViewSet, basename='certificado')
+router.register(r'posts', PostBlogViewSet, basename='post')
 
 urlpatterns = [
     path('', include(router.urls)),

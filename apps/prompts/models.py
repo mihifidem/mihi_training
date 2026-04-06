@@ -125,6 +125,12 @@ class Prompt(models.Model):
         choices=VISIBILIDAD_CHOICES,
         default=VISIBILIDAD_PUBLICA,
     )
+    imagen_muestra = models.ImageField(
+        upload_to='prompts/muestras/',
+        blank=True,
+        null=True,
+        help_text='Imagen de muestra del resultado (opcional, para prompts de imagen).',
+    )
     publicado = models.BooleanField(default=True)
     destacado = models.BooleanField(default=False)
     publicado_en = models.DateTimeField(default=timezone.now)

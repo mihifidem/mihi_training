@@ -95,3 +95,6 @@ celerybeat-schedule
 secrets.json
 *.key
 *.pem
+# Environment variables
+.env
+*.env

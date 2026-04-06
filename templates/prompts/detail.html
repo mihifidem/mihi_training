@@ -145,6 +145,26 @@
       </div>
     </div>
 
+    {% if prompt.imagen_muestra %}
+    <!-- Imagen de muestra -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body p-4">
+        <h2 class="h6 fw-bold mb-3">
+          <i class="bi bi-image me-1 text-info"></i>Imagen de muestra
+        </h2>
+        <a href="{{ prompt.imagen_muestra.url }}" target="_blank" rel="noopener">
+          <img src="{{ prompt.imagen_muestra.url }}"
+               alt="Muestra del resultado del prompt"
+               class="img-fluid rounded shadow-sm"
+               style="max-height:420px;object-fit:contain;">
+        </a>
+        <p class="text-muted small mt-2 mb-0">
+          <i class="bi bi-info-circle me-1"></i>Ejemplo de resultado generado con este prompt.
+        </p>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- =================== PROMPT INTERFACE =================== -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-body p-4">
@@ -168,6 +188,21 @@
                   <label class="var-label mb-0" for="var-{{ v.nombre }}">{{ v.descripcion }}</label>
                 </div>
                 <div class="var-desc">Variable: <code>&#123;{{ v.nombre }}&#125;</code></div>
+                {% if v.tipo == 'imagen' %}
+                <div id="img-preview-wrap-{{ v.nombre }}" class="mb-2 d-none">
+                  <img id="img-preview-{{ v.nombre }}" class="img-fluid rounded border"
+                       style="max-height:160px;object-fit:contain;" alt="Vista previa">
+                </div>
+                <input type="file"
+                       id="var-{{ v.nombre }}"
+                       class="var-input form-control"
+                       data-varname="{{ v.nombre }}"
+                       data-tipo="imagen"
+                       accept="image/*">
+                <div class="text-muted mt-1" style="font-size:.7rem;">
+                  <i class="bi bi-info-circle me-1"></i>Adjunta la imagen al copiar este prompt en tu herramienta IA.
+                </div>
+                {% else %}
                 <input type="text"
                        id="var-{{ v.nombre }}"
                        class="var-input form-control"
@@ -175,6 +210,7 @@
                        value="{{ v.valor_defecto }}"
                        placeholder="{{ v.descripcion }}"
                        autocomplete="off">
+                {% endif %}
               </div>
               {% endfor %}
 
@@ -325,7 +361,13 @@
       let result = TEMPLATE;
       document.querySelectorAll('.var-input').forEach(input => {
         const name = input.dataset.varname;
-        const val  = input.value.trim();
+        const tipo = input.dataset.tipo || 'texto';
+        let val;
+        if (tipo === 'imagen') {
+          val = (input.files && input.files.length) ? `[📷 ${input.files[0].name}]` : null;
+        } else {
+          val = input.value.trim();
+        }
         result = result.split('{' + name + '}').join(val || ('{' + name + '}'));
       });
       preview.value = result;
@@ -336,7 +378,20 @@
 
     // Watch inputs
     document.querySelectorAll('.var-input').forEach(input => {
-      input.addEventListener('input', fillPrompt);
+      const eventType = input.dataset.tipo === 'imagen' ? 'change' : 'input';
+      input.addEventListener(eventType, function () {
+        if (this.dataset.tipo === 'imagen') {
+          const wrap = document.getElementById('img-preview-wrap-' + this.dataset.varname);
+          const img  = document.getElementById('img-preview-' + this.dataset.varname);
+          if (this.files && this.files[0] && wrap && img) {
+            wrap.classList.remove('d-none');
+            img.src = URL.createObjectURL(this.files[0]);
+          } else if (wrap) {
+            wrap.classList.add('d-none');
+          }
+        }
+        fillPrompt();
+      });
     });
 
     // Reset button
@@ -344,7 +399,13 @@
     if (btnReset) {
       btnReset.addEventListener('click', () => {
         document.querySelectorAll('.var-input').forEach(input => {
-          input.value = defaults[input.dataset.varname] || '';
+          if (input.dataset.tipo === 'imagen') {
+            input.value = '';
+            const wrap = document.getElementById('img-preview-wrap-' + input.dataset.varname);
+            if (wrap) wrap.classList.add('d-none');
+          } else {
+            input.value = defaults[input.dataset.varname] || '';
+          }
         });
         fillPrompt();
       });
