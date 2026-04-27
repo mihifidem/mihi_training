@@ -53,6 +53,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     'apps.users',
     'apps.courses',
+    'apps.evaluations',
     'apps.blog',
     'apps.gamification',
     'apps.rewards',
@@ -62,6 +63,8 @@ LOCAL_APPS = [
     'apps.enlaces',
     'apps.prompts',
     'apps.api',
+    'apps.curriculum',
+    'apps.bug_reports',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

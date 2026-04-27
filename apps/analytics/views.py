@@ -596,3 +596,136 @@ class ProgresoAlumnoView(LoginRequiredMixin, TemplateView):
             usuario=user
         ).select_related('quiz__tema__curso').order_by('-fecha')[:10]
         return context
+
+
+class CVTrackerView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """Admin view: track CV completion for all students."""
+    template_name = 'analytics/cv_tracker.html'
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    # Section keys, labels and max points (matches curriculum/signals.py)
+    SECCIONES = [
+        ('personal',    'Datos personales',          25),
+        ('perfil',      'Perfil profesional',         25),
+        ('experiencia', 'Experiencia laboral',        30),
+        ('educacion',   'Formación académica',        25),
+        ('proyectos',   'Proyectos',                  25),
+        ('formacion',   'Formación complementaria',   20),
+        ('habilidades', 'Habilidades',                20),
+        ('idiomas',     'Idiomas',                    20),
+        ('logros',      'Logros',                     20),
+        ('voluntariado','Voluntariado',                20),
+        ('redes',       'Redes profesionales',        15),
+        ('otros',       'Otros datos',                10),
+        ('intereses',   'Intereses',                  10),
+    ]
+    PUNTOS_TOTAL_CV = sum(pts for _, _, pts in SECCIONES)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from apps.curriculum.models import CurriculumVitae
+        from apps.users.models import Aula
+
+        filtro_alumno = (self.request.GET.get('alumno') or '').strip()
+        filtro_aula = (self.request.GET.get('aula') or '').strip()
+
+        alumnos_qs = (
+            User.objects.filter(is_active=True, is_staff=False)
+            .select_related('aula')
+            .order_by('username')
+        )
+        if filtro_alumno:
+            alumnos_qs = alumnos_qs.filter(
+                Q(username__icontains=filtro_alumno)
+                | Q(first_name__icontains=filtro_alumno)
+                | Q(last_name__icontains=filtro_alumno)
+            )
+        if filtro_aula == 'sin_aula':
+            alumnos_qs = alumnos_qs.filter(aula__isnull=True)
+        elif filtro_aula.isdigit():
+            alumnos_qs = alumnos_qs.filter(aula_id=int(filtro_aula))
+
+        # Pre-fetch all CVs and related data in as few queries as possible
+        cvs = {
+            cv.user_id: cv
+            for cv in CurriculumVitae.objects.filter(user__in=alumnos_qs)
+            .prefetch_related(
+                'personal_info', 'professional_profile',
+                'work_experiences', 'educations', 'trainings',
+                'skills', 'languages', 'projects', 'achievements',
+                'volunteerings', 'social_networks', 'interests', 'other_info',
+            )
+        }
+
+        rows = []
+        seccion_totals = {key: 0 for key, _, _ in self.SECCIONES}
+
+        for alumno in alumnos_qs:
+            cv = cvs.get(alumno.pk)
+            if cv is None:
+                secciones_alumno = {key: False for key, _, _ in self.SECCIONES}
+            else:
+                secciones_alumno = {
+                    'personal':    hasattr(cv, 'personal_info'),
+                    'perfil':      hasattr(cv, 'professional_profile'),
+                    'experiencia': cv.work_experiences.exists(),
+                    'educacion':   cv.educations.exists(),
+                    'formacion':   cv.trainings.exists(),
+                    'habilidades': cv.skills.exists(),
+                    'idiomas':     cv.languages.exists(),
+                    'proyectos':   cv.projects.exists(),
+                    'logros':      cv.achievements.exists(),
+                    'voluntariado':cv.volunteerings.exists(),
+                    'redes':       hasattr(cv, 'social_networks'),
+                    'intereses':   cv.interests.exists(),
+                    'otros':       hasattr(cv, 'other_info'),
+                }
+
+            for key, _, _ in self.SECCIONES:
+                if secciones_alumno.get(key):
+                    seccion_totals[key] += 1
+
+            done = sum(1 for v in secciones_alumno.values() if v)
+            total = len(self.SECCIONES)
+            pct = int(done / total * 100) if total else 0
+            puntos_cv = sum(
+                pts for key, _, pts in self.SECCIONES if secciones_alumno.get(key)
+            )
+
+            rows.append({
+                'alumno': alumno,
+                'secciones': secciones_alumno,
+                'done': done,
+                'total': total,
+                'pct': pct,
+                'puntos_cv': puntos_cv,
+            })
+
+        # Sort: most complete first
+        rows.sort(key=lambda r: (-r['pct'], r['alumno'].username))
+
+        total_alumnos = len(rows)
+        cv_completo = sum(1 for r in rows if r['pct'] == 100)
+        cv_iniciado = sum(1 for r in rows if 0 < r['pct'] < 100)
+        cv_vacio = sum(1 for r in rows if r['pct'] == 0)
+
+        paginator = Paginator(rows, 25)
+        page_number = self.request.GET.get('page') or '1'
+        page_obj = paginator.get_page(page_number)
+
+        context.update({
+            'page_obj': page_obj,
+            'secciones_meta': self.SECCIONES,
+            'seccion_totals': seccion_totals,
+            'total_alumnos': total_alumnos,
+            'cv_completo': cv_completo,
+            'cv_iniciado': cv_iniciado,
+            'cv_vacio': cv_vacio,
+            'puntos_total_cv': self.PUNTOS_TOTAL_CV,
+            'filtro_alumno': filtro_alumno,
+            'filtro_aula': filtro_aula,
+            'aulas_filtro': Aula.objects.order_by('nombre'),
+        })
+        return context

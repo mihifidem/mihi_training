@@ -9,4 +9,5 @@ urlpatterns = [
     path('logros/', views.LogrosView.as_view(), name='logros'),
     path('misiones/', views.MisionesView.as_view(), name='misiones'),
     path('ranking/', views.RankingView.as_view(), name='ranking'),
+    path('como-ganar-puntos/', views.ComoGanarPuntosView.as_view(), name='como_ganar_puntos'),
 ]

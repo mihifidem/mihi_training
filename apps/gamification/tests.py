@@ -57,3 +57,29 @@ class InsigniasViewTests(TestCase):
         insignias_con_estado = dict(response.context['insignias_con_estado'])
         self.assertTrue(insignias_con_estado[self.insignia])
         self.assertContains(response, 'Desbloqueada')
+
+
+@override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')
+class ComoGanarPuntosViewTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.aula = Aula.objects.create(
+            nombre='Aula Puntos',
+            direccion='Calle Puntos 1',
+            horario='Tarde',
+        )
+        self.user = user_model.objects.create_user(
+            username='usuario_puntos',
+            password='test1234',
+            role='alumno',
+            aula=self.aula,
+        )
+        self.client.force_login(self.user)
+
+    def test_pagina_como_ganar_puntos_renderiza_listado(self):
+        response = self.client.get(reverse('gamification:como_ganar_puntos'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Listado de formas de conseguir puntos')
+        self.assertContains(response, 'Completar temas del curso')
+        self.assertContains(response, 'Bug validado por admin')

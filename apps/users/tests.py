@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from apps.courses.models import Curso, InscripcionCurso, Progreso
 from apps.gamification.models import Insignia
-from apps.users.forms import RegistroForm
+from apps.users.forms import PerfilForm, RegistroForm
 from apps.users.models import Aula
 from apps.users.serializers import UserSerializer
 
@@ -68,6 +68,64 @@ class UserSerializerTests(TestCase):
         serializer = UserSerializer(user)
 
         self.assertEqual(serializer.data['role'], 'premium')
+
+
+class PerfilFormTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.aula = Aula.objects.create(
+            nombre='Aula Form',
+            direccion='Calle Form 1',
+            horario='Manana',
+        )
+        self.user = user_model.objects.create_user(
+            username='perfil_form_user',
+            password='test1234',
+            first_name='Perfil',
+            last_name='Usuario',
+            email='perfil@example.com',
+            role='alumno',
+            aula=self.aula,
+            bio='Bio original',
+        )
+
+    def test_editar_perfil_sin_codigo_conserva_aula_y_rol(self):
+        form = PerfilForm(
+            data={
+                'first_name': 'Perfil',
+                'last_name': 'Actualizado',
+                'email': 'perfil@example.com',
+                'bio': 'Bio actualizada',
+                'fecha_nacimiento': '',
+                'aula': self.aula.pk,
+                'codigo_acceso_alumno': '',
+            },
+            instance=self.user,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        self.user.refresh_from_db()
+
+        self.assertEqual(self.user.role, 'alumno')
+        self.assertEqual(self.user.aula_id, self.aula.id)
+        self.assertEqual(self.user.bio, 'Bio actualizada')
+
+    def test_usuario_sin_aula_sigue_viendo_curso_inscrito(self):
+        curso = Curso.objects.create(
+            nombre='Curso Persistente',
+            descripcion='Descripcion',
+            fecha_inicio=date.today(),
+            horas_duracion=2,
+            activo=True,
+        )
+        InscripcionCurso.objects.create(usuario=self.user, curso=curso)
+        self.user.aula = None
+        self.user.save(update_fields=['aula'])
+
+        cursos = self.user.get_cursos_disponibles()
+
+        self.assertIn(curso, cursos)
 
 
 @override_settings(STATICFILES_STORAGE='django.contrib.staticfiles.storage.StaticFilesStorage')

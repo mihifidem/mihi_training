@@ -3,6 +3,13 @@
 {% block page_title %}Dashboard Administrador{% endblock %}
 
 {% block content %}
+{# ── Quick actions ─── #}
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a href="{% url 'analytics:cv_tracker' %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-file-person me-1"></i>CV Tracker
+  </a>
+</div>
+
 <!-- KPI row -->
 <div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
   <div class="col">

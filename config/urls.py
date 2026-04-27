@@ -4,6 +4,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from apps.users.views import LandingView
+from apps.curriculum.views import public_cv, cv_pdf
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -19,9 +20,15 @@ urlpatterns = [
     path('recompensas/', include('apps.rewards.urls', namespace='rewards')),
     path('analytics/', include('apps.analytics.urls', namespace='analytics')),
     path('certificados/', include('apps.certifications.urls', namespace='certifications')),
+    path('evaluaciones/', include('apps.evaluations.urls', namespace='evaluations')),
     path('tutor/', include('apps.ai_tutor.urls', namespace='ai_tutor')),
     path('enlaces/', include('apps.enlaces.urls', namespace='enlaces')),
     path('prompts/', include('apps.prompts.urls', namespace='prompts')),
+    path('cv/', include('apps.curriculum.urls', namespace='curriculum')),
+    path('bugs/', include('apps.bug_reports.urls', namespace='bug_reports')),
+    # Public CV URLs (opentowork.es/slug style)
+    path('opentowork/<slug:slug>/', public_cv, name='curriculum_public_cv'),
+    path('opentowork/<slug:slug>/pdf/', cv_pdf, name='curriculum_cv_pdf'),
 
     # API
     path('api/v1/', include('apps.api.urls')),

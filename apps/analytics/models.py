@@ -12,6 +12,8 @@ class RegistroActividad(models.Model):
         ('insignia_obtenida', 'Insignia obtenida'),
         ('recompensa_canjeada', 'Recompensa canjeada'),
         ('mision_completada', 'Misión completada'),
+        ('cv_seccion', 'Sección de CV completada'),
+        ('bug_validado', 'Bug validado'),
     ]
 
     usuario = models.ForeignKey(

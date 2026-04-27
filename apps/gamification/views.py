@@ -113,6 +113,82 @@ class RankingView(LoginRequiredMixin, ListView):
         return context
 
 
+class ComoGanarPuntosView(LoginRequiredMixin, TemplateView):
+    template_name = 'gamification/como_ganar_puntos.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        from apps.courses.models import TemaRecurso
+
+        context['formas_automaticas'] = [
+            {
+                'titulo': 'Completar temas del curso',
+                'detalle': 'Cada tema completado suma los puntos configurados en ese tema.',
+                'valor': 'Variable segun tema',
+            },
+            {
+                'titulo': 'Aprobar quizzes',
+                'detalle': 'Cada quiz aprobado otorga su bonus de puntos.',
+                'valor': 'Variable segun quiz',
+            },
+            {
+                'titulo': 'Visualizar recursos de tema por primera vez',
+                'detalle': 'Solo puntua la primera visualizacion de cada recurso.',
+                'valor': f'+{TemaRecurso.PUNTOS_VISUALIZACION} puntos por recurso',
+            },
+            {
+                'titulo': 'Completar lectura de posts del blog',
+                'detalle': 'Al completar el tiempo de lectura requerido de un post.',
+                'valor': 'Variable segun post',
+            },
+            {
+                'titulo': 'Completar secciones del CV',
+                'detalle': (
+                    'Datos personales (+25), perfil profesional (+25), redes (+15), otros datos (+10), '
+                    'experiencia (+30), educacion (+25), formacion complementaria (+20), '
+                    'habilidades (+20), idiomas (+20), proyectos (+25), logros (+20), '
+                    'voluntariado (+20), intereses (+10).'
+                ),
+                'valor': 'Hasta +265 puntos (primera vez por seccion)',
+            },
+            {
+                'titulo': 'Completar misiones',
+                'detalle': 'Las misiones activas otorgan su recompensa al completarlas.',
+                'valor': 'Variable segun mision',
+            },
+            {
+                'titulo': 'Abrir enlaces importantes por primera vez',
+                'detalle': 'Cada enlace puntua una sola vez por usuario.',
+                'valor': '+1 punto por enlace',
+            },
+        ]
+
+        context['formas_admin'] = [
+            {
+                'titulo': 'Logros asignados por admin',
+                'detalle': 'El equipo puede asignar logros con una cantidad concreta de puntos.',
+                'valor': 'Variable segun logro',
+            },
+            {
+                'titulo': 'Misiones asignadas por admin con puntos inmediatos',
+                'detalle': 'En algunos casos, el admin puede aplicar puntos al asignar la mision.',
+                'valor': 'Variable segun mision',
+            },
+            {
+                'titulo': 'Bug validado por admin',
+                'detalle': 'Cuando un bug reportado se valida, recibes los puntos de recompensa.',
+                'valor': 'Variable segun bug',
+            },
+        ]
+
+        context['formas_gastar'] = [
+            'Canjear recompensas descuenta puntos disponibles.',
+            'Tu nivel depende de puntos totales acumulados, no del saldo disponible.',
+        ]
+        return context
+
+
 class InsigniaCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Insignia
     form_class = InsigniaForm

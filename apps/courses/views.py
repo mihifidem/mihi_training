@@ -1,5 +1,5 @@
-"""Views for the courses app."""
 import csv
+import random
 from pathlib import Path
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -9,6 +9,8 @@ from django.views.generic import ListView, DetailView, View
 from django.http import JsonResponse
 from django.conf import settings
 from django.db.models import Count, Q
+from django.utils import timezone
+from apps.evaluations.models import Evaluacion
 
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
@@ -77,6 +79,34 @@ class CursoDetailView(LoginRequiredMixin, DetailView):
         context['porcentaje_progreso'] = int((completados / total) * 100) if total else 0
         context['temas_completados'] = completados
         context['total_temas'] = total
+
+        evaluaciones_base = Evaluacion.objects.filter(estado=Evaluacion.ESTADO_PUBLICADA)
+        if user.aula_id:
+            evaluaciones_base = evaluaciones_base.filter(aula_id=user.aula_id)
+        else:
+            evaluaciones_base = evaluaciones_base.none()
+
+        evaluaciones_ud = evaluaciones_base.filter(
+            alcance_tipo=Evaluacion.ALCANCE_UD,
+            tema__curso=curso,
+        ).distinct().order_by('-fecha_prueba', '-creada_en')
+
+        evaluaciones_uf = evaluaciones_base.filter(
+            alcance_tipo=Evaluacion.ALCANCE_UF,
+            curso=curso,
+        ).distinct().order_by('-fecha_prueba', '-creada_en')
+
+        evaluaciones_mf = evaluaciones_base.filter(
+            alcance_tipo=Evaluacion.ALCANCE_MF,
+            cursos=curso,
+        ).distinct().order_by('-fecha_prueba', '-creada_en')
+
+        context['evaluaciones_ud'] = evaluaciones_ud
+        context['evaluaciones_uf'] = evaluaciones_uf
+        context['evaluaciones_mf'] = evaluaciones_mf
+        context['evaluaciones_total'] = (
+            evaluaciones_ud.count() + evaluaciones_uf.count() + evaluaciones_mf.count()
+        )
         return context
 
 
@@ -223,14 +253,15 @@ class QuizView(LoginRequiredMixin, View):
         return Path(settings.BASE_DIR) / 'static' / 'quiz' / quiz.csv_filename
 
     @staticmethod
-    def _load_csv_questions(quiz):
+    def _load_all_csv_questions(quiz):
+        """Carga TODAS las preguntas del CSV (sin seleccionar)"""
         csv_path = QuizView._csv_path_from_quiz(quiz)
         if not csv_path or not csv_path.exists():
             return []
 
         questions = []
         with csv_path.open('r', encoding='utf-8', newline='') as f:
-            reader = csv.DictReader(f)
+            reader = csv.DictReader(f, delimiter=';')
             for i, row in enumerate(reader, start=1):
                 raw = {str(k).strip().lower(): (v or '').strip() for k, v in row.items() if k}
 
@@ -258,9 +289,31 @@ class QuizView(LoginRequiredMixin, View):
                 )
                 if not correcta:
                     continue
-                correcta = correcta.strip().upper()[:1]
-                if correcta not in opciones:
-                    continue
+
+                correcta = correcta.strip()
+
+                # Formato 1: Es una letra (A, B, C, D)
+                if len(correcta) == 1 and correcta.upper() in opciones:
+                    correcta = correcta.upper()
+                # Formato 2: Es el texto completo de la respuesta
+                elif correcta in opciones.values():
+                    # Encontrar la letra correspondiente al texto
+                    for letter, text in opciones.items():
+                        if text == correcta:
+                            correcta = letter
+                            break
+                else:
+                    # Intenta coincidir parcialmente (primeras palabras)
+                    correcta_parts = correcta.lower().split()[:2]
+                    correcta_found = False
+                    for letter, text in opciones.items():
+                        text_parts = text.lower().split()[:2]
+                        if correcta_parts == text_parts:
+                            correcta = letter
+                            correcta_found = True
+                            break
+                    if not correcta_found:
+                        continue
 
                 questions.append({
                     'id': f'csv_{i}',
@@ -271,7 +324,17 @@ class QuizView(LoginRequiredMixin, View):
         return questions
 
     @staticmethod
-    def _require_csv_questions(quiz):
+    def _get_quiz_questions(quiz, num_preguntas=20):
+        """Carga todas las preguntas y selecciona 'num_preguntas' aleatorias"""
+        all_questions = QuizView._load_all_csv_questions(quiz)
+        if not all_questions:
+            return []
+        # Seleccionar preguntas aleatorias (máximo num_preguntas)
+        num = min(num_preguntas, len(all_questions))
+        return random.sample(all_questions, num)
+
+    @staticmethod
+    def _require_csv_questions(quiz, num_preguntas=20):
         """Return CSV questions or an explanatory error message if unavailable/invalid."""
         csv_path = QuizView._csv_path_from_quiz(quiz)
         if not quiz.csv_filename:
@@ -279,7 +342,7 @@ class QuizView(LoginRequiredMixin, View):
         if not csv_path or not csv_path.exists():
             return None, f'No se encontró el archivo CSV: {quiz.csv_filename} en static/quiz.'
 
-        preguntas = QuizView._load_csv_questions(quiz)
+        preguntas = QuizView._get_quiz_questions(quiz, num_preguntas)
         if not preguntas:
             return None, 'El archivo CSV no contiene preguntas válidas.'
         return preguntas, None
@@ -290,7 +353,7 @@ class QuizView(LoginRequiredMixin, View):
             messages.warning(request, 'Inscríbete en el curso para acceder al quiz.')
             return redirect('courses:detail', pk=quiz.tema.curso.pk)
 
-        preguntas, error_csv = self._require_csv_questions(quiz)
+        preguntas, error_csv = self._require_csv_questions(quiz, num_preguntas=20)
         if error_csv:
             messages.error(request, error_csv)
             return redirect('courses:tema_detail', pk=quiz.tema.pk)
@@ -304,7 +367,7 @@ class QuizView(LoginRequiredMixin, View):
 
     def post(self, request, pk):
         quiz = get_object_or_404(Quiz, pk=pk)
-        preguntas, error_csv = self._require_csv_questions(quiz)
+        preguntas, error_csv = self._require_csv_questions(quiz, num_preguntas=20)
         if error_csv:
             messages.error(request, error_csv)
             return redirect('courses:tema_detail', pk=quiz.tema.pk)

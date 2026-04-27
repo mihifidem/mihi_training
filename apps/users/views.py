@@ -74,6 +74,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         from apps.gamification.models import InsigniaUsuario, LogroUsuario, MisionUsuario
         from apps.rewards.models import CanjeRecompensa
         from apps.blog.models import LecturaPostUsuario
+        from apps.bug_reports.models import BugReport
 
         inscripciones = InscripcionCurso.objects.filter(
             usuario=user
@@ -107,6 +108,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         actividades = user.actividades.order_by('-timestamp')[:10]
 
+        mis_bugs_total = BugReport.objects.filter(alumno=user).count()
+        mis_bugs_validados = BugReport.objects.filter(
+            alumno=user,
+            estado=BugReport.ESTADO_VALIDADO,
+        ).count()
+
         context.update({
             'inscripciones': inscripciones,
             'insignias_recientes': insignias_recientes,
@@ -117,6 +124,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'lecturas_posts': lecturas_posts,
             'total_posts_vistos': total_posts_vistos,
             'total_posts_con_puntos': total_posts_con_puntos,
+            'mis_bugs_total': mis_bugs_total,
+            'mis_bugs_validados': mis_bugs_validados,
         })
         return context
 
@@ -158,6 +167,19 @@ class EditarPerfilView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy('users:perfil', kwargs={'username': self.request.user.username})
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        # Indicar si el aula está protegida (alumno con aula ya asignada)
+        context['aula_protegida'] = (
+            user.role == 'alumno' and
+            user.aula is not None and
+            not user.is_staff
+        )
+
+        return context
 
     def form_valid(self, form):
         messages.success(self.request, 'Perfil actualizado correctamente.')

@@ -74,6 +74,9 @@ class PerfilForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._original_aula = getattr(self.instance, 'aula', None)
+        self._original_role = getattr(self.instance, 'role', None)
+        self._user = kwargs.get('instance')
         for field_name, field in self.fields.items():
             if field_name == 'aula':
                 field.widget.attrs['class'] = 'form-select'
@@ -83,8 +86,25 @@ class PerfilForm(forms.ModelForm):
         self.fields['codigo_acceso_alumno'].widget.attrs.update(
             {'placeholder': 'Codigo alumno'}
         )
-        # Aula remains locked until a valid code is entered.
-        self.fields['aula'].widget.attrs['disabled'] = 'disabled'
+
+        # Control de disponibilidad del campo aula
+        is_alumno = getattr(self.instance, 'role', None) == 'alumno'
+        is_staff = getattr(self.instance, 'is_staff', False)
+        has_aula = self._original_aula is not None
+
+        if is_staff:
+            # Admin siempre puede cambiar el aula
+            self.fields['aula'].widget.attrs['data-alumno'] = 'true'
+        elif is_alumno and has_aula:
+            # Alumno con aula asignada: no puede cambiarla
+            self.fields['aula'].widget.attrs['disabled'] = 'disabled'
+            self.fields['aula'].widget.attrs['title'] = 'Tu aula no puede ser modificada. Contacta al administrador si necesitas cambiarla.'
+        elif is_alumno and not has_aula:
+            # Alumno sin aula: puede seleccionar al introducir código
+            self.fields['aula'].widget.attrs['data-alumno'] = 'true'
+        else:
+            # No-alumno (basic/premium): deshabilitado hasta introducir código
+            self.fields['aula'].widget.attrs['disabled'] = 'disabled'
 
     def clean(self):
         cleaned_data = super().clean()
@@ -93,22 +113,52 @@ class PerfilForm(forms.ModelForm):
         if codigo and codigo != CODIGO_ACCESO_ALUMNO:
             self.add_error('codigo_acceso_alumno', 'Codigo incorrecto.')
 
-        if codigo != CODIGO_ACCESO_ALUMNO:
-            cleaned_data['aula'] = None
+        # Lógica de aula según rol y estado actual
+        is_alumno = getattr(self.instance, 'role', None) == 'alumno'
+        is_staff = getattr(self.instance, 'is_staff', False)
+        has_aula = self._original_aula is not None
+
+        if is_staff:
+            # Admin puede cambiar siempre
+            pass
+        elif is_alumno and has_aula:
+            # Alumno con aula asignada: preservar el aula original
+            cleaned_data['aula'] = self._original_aula
+        elif is_alumno and not has_aula:
+            # Alumno sin aula: permitir si código es válido
+            if codigo == CODIGO_ACCESO_ALUMNO:
+                cleaned_data['aula'] = cleaned_data.get('aula') or self._original_aula
+            else:
+                cleaned_data['aula'] = self._original_aula
+        else:
+            # No-alumno: solo permitir si código es válido
+            if codigo == CODIGO_ACCESO_ALUMNO:
+                cleaned_data['aula'] = cleaned_data.get('aula') or self._original_aula
+            else:
+                cleaned_data['aula'] = self._original_aula
 
         return cleaned_data
 
     def save(self, commit=True):
         user = super().save(commit=False)
         codigo = (self.cleaned_data.get('codigo_acceso_alumno') or '').strip()
+        is_staff = getattr(user, 'is_staff', False)
+        has_aula = self._original_aula is not None
 
-        if codigo == CODIGO_ACCESO_ALUMNO:
+        if is_staff:
+            # Admin puede cambiar el rol y aula
+            user.aula = self.cleaned_data.get('aula') or self._original_aula
+        elif hasattr(self.instance, 'role') and self.instance.role == 'alumno' and has_aula:
+            # Alumno con aula asignada: NO cambiar el aula
+            user.aula = self._original_aula
+        elif codigo == CODIGO_ACCESO_ALUMNO:
+            # Código válido: permitir cambios
             user.role = 'alumno'
-            user.aula = self.cleaned_data.get('aula')
+            user.aula = self.cleaned_data.get('aula') or self._original_aula
         else:
-            user.aula = None
-            if user.role == 'alumno':
-                user.role = 'basic'
+            # Preservar valores originales
+            user.role = self._original_role or user.role
+            user.aula = self._original_aula
 
         if commit:
             user.save()

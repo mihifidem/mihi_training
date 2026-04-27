@@ -14,6 +14,7 @@ from apps.gamification.views import InsigniaViewSet, MisionUsuarioViewSet
 from apps.rewards.views import RecompensaViewSet, CanjeViewSet
 from apps.certifications.views import CertificadoViewSet
 from apps.blog.views import PostBlogViewSet
+from apps.evaluations.views import TipoExamenViewSet, EvaluacionViewSet, EntregaEvaluacionViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -27,6 +28,9 @@ router.register(r'rewards', RecompensaViewSet, basename='recompensa')
 router.register(r'redemptions', CanjeViewSet, basename='canje')
 router.register(r'certificates', CertificadoViewSet, basename='certificado')
 router.register(r'posts', PostBlogViewSet, basename='post')
+router.register(r'exam-types', TipoExamenViewSet, basename='tipo_examen')
+router.register(r'evaluations', EvaluacionViewSet, basename='evaluacion')
+router.register(r'submissions', EntregaEvaluacionViewSet, basename='entrega_evaluacion')
 
 urlpatterns = [
     path('', include(router.urls)),

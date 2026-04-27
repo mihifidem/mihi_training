@@ -1,0 +1,4 @@
+{% extends "curriculum/sections/_form_base.html" %}
+{% block form_title %}{% if object %}Editar habilidad{% else %}<i class="bi bi-lightning-charge me-2 text-primary"></i>Nueva habilidad{% endif %}{% endblock %}
+{% block back_url %}{% url 'curriculum:skill_list' %}{% endblock %}
+{% block cancel_url %}{% url 'curriculum:skill_list' %}{% endblock %}

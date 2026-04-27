@@ -5,6 +5,15 @@
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-12 col-md-7">
+    {% if aula_protegida %}
+    <div class="alert alert-info alert-dismissible fade show mb-3" role="alert">
+      <i class="bi bi-lock me-2"></i>
+      <strong>Aula asignada y protegida</strong>
+      <p class="mb-0">Tu aula actual no puede ser modificada por ti. Si necesitas cambiarla, contacta con el administrador.</p>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
     <div class="card border-0 shadow-sm">
       <div class="card-body p-5">
         <form method="post" enctype="multipart/form-data">
@@ -17,6 +26,8 @@
               <div class="text-danger small mt-1">{{ field.errors.0 }}</div>
             {% endif %}
           </div>
+          {% empty %}
+          <p>No hay campos disponibles</p>
           {% endfor %}
           <div class="d-flex gap-2 mt-4">
             <button type="submit" class="btn btn-primary">Guardar cambios</button>
@@ -34,12 +45,30 @@
   (function () {
     const codigoInput = document.querySelector('input[name="codigo_acceso_alumno"]');
     const aulaSelect = document.querySelector('select[name="aula"]');
-    if (!codigoInput || !aulaSelect) return;
+
+    if (!codigoInput || !aulaSelect) {
+      return;
+    }
 
     function syncAulaAvailability() {
+      // Si el campo ya está disabled de forma permanente (alumno con aula), no modificar
+      if (aulaSelect.hasAttribute('disabled') && !aulaSelect.hasAttribute('data-alumno')) {
+        return;
+      }
+
       const valido = (codigoInput.value || '').trim() === '010819';
-      aulaSelect.disabled = !valido;
-      if (!valido) {
+      const isAlumno = aulaSelect.hasAttribute('data-alumno');
+
+      if (isAlumno) {
+        const codigoEscrito = (codigoInput.value || '').trim();
+        // Si escribió código pero es incorrecto, deshabilitar
+        aulaSelect.disabled = codigoEscrito !== '' && !valido;
+      } else {
+        // Si no es alumno, solo habilitar si código es correcto
+        aulaSelect.disabled = !valido;
+      }
+
+      if (aulaSelect.disabled && !valido) {
         aulaSelect.selectedIndex = 0;
       }
     }

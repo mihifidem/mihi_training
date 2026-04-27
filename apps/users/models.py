@@ -1,6 +1,7 @@
 """Custom user model and notifications."""
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 
@@ -78,9 +79,13 @@ class User(AbstractUser):
     def get_cursos_disponibles(self):
         from apps.courses.models import Curso
 
-        if not self.aula_id:
-            return Curso.objects.none()
-        return Curso.objects.filter(activo=True, aulas_disponibles=self.aula).distinct()
+        cursos_inscritos_ids = self.inscripciones.values_list('curso_id', flat=True)
+        filtros = Q(pk__in=cursos_inscritos_ids)
+
+        if self.aula_id:
+            filtros |= Q(aulas_disponibles=self.aula)
+
+        return Curso.objects.filter(filtros, activo=True).distinct()
 
     def puede_inscribirse_en_curso(self, curso) -> bool:
         if not self.aula_id or not curso.activo:
